@@ -45,7 +45,7 @@ const AuthenticatedApp = () => {
           <MainPage />
         </LayoutWrapper>
       } />
-      {Object.entries(Pages).map(([path, Page]) => (
+      {Object.entries(Pages).flatMap(([path, Page]) => [
         <Route
           key={path}
           path={`/${path}`} 
@@ -54,9 +54,25 @@ const AuthenticatedApp = () => {
               <Page />
             </LayoutWrapper>
           }
-        />
-      ))}
+        />,
+        ...(path !== path.toLowerCase() ? [
+          <Route
+            key={`${path}-lower`}
+            path={`/${path.toLowerCase()}`}
+            element={
+              <LayoutWrapper currentPageName={path}>
+                <Page />
+              </LayoutWrapper>
+            }
+          />
+        ] : [])
+      ])}
       <Route path="/PDV" element={
+        <LayoutWrapper currentPageName="PDV">
+          <PDVPage />
+        </LayoutWrapper>
+      } />
+      <Route path="/pdv" element={
         <LayoutWrapper currentPageName="PDV">
           <PDVPage />
         </LayoutWrapper>
