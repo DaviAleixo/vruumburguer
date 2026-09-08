@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Background quente/creme — sensação premium */
+    --background: 36 20% 97%;
+    --foreground: 20 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 10% 10%;
+
+    /* Primary = vermelho profundo e rico */
+    --primary: 4 80% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 36 18% 94%;
+    --secondary-foreground: 20 10% 20%;
+
+    --muted: 36 14% 93%;
+    --muted-foreground: 20 8% 48%;
+
+    --accent: 36 18% 91%;
+    --accent-foreground: 20 10% 15%;
+
+    --destructive: 4 80% 42%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 36 12% 88%;
+    --input: 36 12% 88%;
+    --ring: 4 80% 42%;
+
+    --chart-1: 4 80% 42%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 58%;
+    --chart-5: 27 87% 60%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 20 10% 15%;
+    --sidebar-primary: 4 80% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 36 20% 95%;
+    --sidebar-accent-foreground: 4 80% 42%;
+    --sidebar-border: 36 12% 90%;
+    --sidebar-ring: 4 80% 42%;
+
+    --font-body: 'Plus Jakarta Sans', sans-serif;
+    --font-display: 'Playfair Display', serif;
+  }
+
+  .dark {
+    --background: 20 10% 6%;
+    --foreground: 36 14% 95%;
+    --card: 20 10% 9%;
+    --card-foreground: 36 14% 95%;
+    --popover: 20 10% 9%;
+    --popover-foreground: 36 14% 95%;
+    --primary: 4 80% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 8% 15%;
+    --secondary-foreground: 36 14% 90%;
+    --muted: 20 8% 15%;
+    --muted-foreground: 36 10% 55%;
+    --accent: 20 8% 15%;
+    --accent-foreground: 36 14% 90%;
+    --destructive: 4 70% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 20 8% 18%;
+    --input: 20 8% 18%;
+    --ring: 4 80% 55%;
+    --chart-1: 4 80% 55%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 20 10% 6%;
+    --sidebar-foreground: 36 14% 90%;
+    --sidebar-primary: 4 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 8% 12%;
+    --sidebar-accent-foreground: 36 14% 90%;
+    --sidebar-border: 20 8% 14%;
+    --sidebar-ring: 4 80% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-body);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Scrollbar minimalista */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Remove scrollbar horizontal visível nas categorias */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1,0 +1,225 @@
+import React, { useState, useEffect } from "react";
+import { User } from "@/entities/User";
+import { Order } from "@/entities/Order";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Users, ShoppingCart, DollarSign, Search, MessageSquare } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+
+export default function ClientsPage() {
+  const [clients, setClients] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      if (isSupabaseConfigured() && supabase) {
+        const { data, error } = await supabase.rpc("get_clients_summary");
+        if (!error && data) {
+          setClients(data.map(c => ({
+            ...c,
+            totalOrders: Number(c.total_orders || 0),
+            totalSpent: Number(c.total_spent || 0),
+            lastOrderDate: c.last_order_date ? new Date(c.last_order_date) : null
+          })));
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fallback
+      const [usersData, ordersData] = await Promise.all([
+        User.list("-created_date", 50),
+        Order.list("-created_date", 50)
+      ]);
+      const nonAdmins = usersData.filter(u => u.role !== 'admin');
+      const clientMap = new Map();
+
+      nonAdmins.forEach(u => {
+        const key = u.phone || u.email || u.id;
+        clientMap.set(key, {
+          id: u.id,
+          full_name: u.full_name,
+          email: u.email,
+          phone: u.phone,
+          totalOrders: 0,
+          totalSpent: 0,
+          lastOrderDate: null
+        });
+      });
+
+      ordersData.forEach(order => {
+        if (order.status === 'cancelado') return;
+        const key = order.customer_phone || order.user_email || order.customer_name || order.id;
+        if (!clientMap.has(key)) {
+          clientMap.set(key, {
+            id: key,
+            full_name: order.customer_name || "Cliente",
+            email: order.user_email || order.customer_email || "-",
+            phone: order.customer_phone || "-",
+            totalOrders: 0,
+            totalSpent: 0,
+            lastOrderDate: null
+          });
+        }
+        const client = clientMap.get(key);
+        client.totalOrders += 1;
+        client.totalSpent += Number(order.total_amount || 0);
+        const orderDate = new Date(order.created_date);
+        if (!client.lastOrderDate || orderDate > client.lastOrderDate) {
+          client.lastOrderDate = orderDate;
+        }
+      });
+
+      setClients(Array.from(clientMap.values()));
+    } catch (err) {
+      console.error("Erro ao carregar clientes:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clientData = clients;
+
+  const filteredClients = clientData.filter(client =>
+    (client.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (client.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (client.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
+  
+  const totalOrders = clientData.reduce((sum, client) => sum + client.totalOrders, 0);
+
+  const openWhatsApp = (phone) => {
+    if (phone) {
+      const sanitizedPhone = phone.replace(/\D/g, '');
+      window.open(`https://wa.me/55${sanitizedPhone}`, '_blank');
+    }
+  };
+
+  return (
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
+          <p className="text-gray-600 mt-2">Visão geral dos seus clientes e atividade de compra</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="border-0 shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Total de Clientes</CardTitle>
+              <Users className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{clientData.length}</div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Total de Pedidos</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{totalOrders}</div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Ticket Médio por Cliente</CardTitle>
+              <DollarSign className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">
+                R$ {clientData.length > 0 ? (clientData.reduce((sum, c) => sum + c.totalSpent, 0) / clientData.length).toFixed(2).replace('.', ',') : '0,00'}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Lista de Clientes</CardTitle>
+              <div className="w-full max-w-sm relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input 
+                  placeholder="Buscar por nome, email ou telefone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead className="text-center">Nº de Pedidos</TableHead>
+                  <TableHead className="text-right">Gasto Total (LTV)</TableHead>
+                  <TableHead className="text-right">Último Pedido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8">Carregando...</TableCell></TableRow>
+                ) : filteredClients.length > 0 ? (
+                  filteredClients.map(client => (
+                    <TableRow key={client.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarFallback>{client.full_name?.charAt(0).toUpperCase() || '?'}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-gray-900">{client.full_name}</p>
+                            <p className="text-sm text-gray-600">{client.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {client.phone}
+                          {client.phone && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openWhatsApp(client.phone)}>
+                              <MessageSquare className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary">{client.totalOrders}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        R$ {client.totalSpent.toFixed(2).replace('.', ',')}
+                      </TableCell>
+                      <TableCell className="text-right text-gray-600">
+                        {client.lastOrderDate ? format(client.lastOrderDate, "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8">Nenhum cliente encontrado.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
