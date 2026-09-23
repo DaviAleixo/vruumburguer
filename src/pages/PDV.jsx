@@ -27,22 +27,30 @@ export default function PDVPage() {
   const [categories, setCategories] = useState([]);
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [showPayment, setShowPayment] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadData();
+    const unsubProduct = Product.subscribe(() => loadData());
+    const unsubCategory = Category.subscribe(() => loadData());
+    return () => {
+      if (typeof unsubProduct === "function") unsubProduct();
+      if (typeof unsubCategory === "function") unsubCategory();
+    };
   }, []);
 
   const loadData = async () => {
     try {
       const [prods, cats] = await Promise.all([
-        Product.filter({ available: true }),
+        Product.list("-created_date"),
         Category.list("order_index"),
       ]);
-      setProducts(prods);
-      setCategories(cats);
+      setProducts(prods || []);
+      setCategories(cats || []);
     } catch (_error) {
       console.error("Erro ao carregar dados no PDV:", _error);
     } finally {
@@ -70,7 +78,7 @@ export default function PDVPage() {
           item.id === productId ? { ...item, qty: item.qty + delta } : item
         )
         .filter((item) => item.qty > 0)
-    );
+      );
   };
 
   const removeItem = (productId) => {
@@ -80,6 +88,8 @@ export default function PDVPage() {
   const clearCart = () => {
     setCart([]);
     setCustomerName("");
+    setCustomerPhone("");
+    setCustomerEmail("");
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -87,7 +97,8 @@ export default function PDVPage() {
   const handleFinalize = async (paymentMethod) => {
     const orderData = {
       customer_name: customerName.trim() || "Balcão",
-      customer_phone: "-",
+      customer_phone: customerPhone.trim() || "-",
+      customer_email: customerEmail.trim() || "",
       total_amount: total,
       status: "confirmado",
       payment_method: paymentMethod,
@@ -136,6 +147,10 @@ export default function PDVPage() {
         cart={cart}
         customerName={customerName}
         onCustomerNameChange={setCustomerName}
+        customerPhone={customerPhone}
+        onCustomerPhoneChange={setCustomerPhone}
+        customerEmail={customerEmail}
+        onCustomerEmailChange={setCustomerEmail}
         onUpdateQty={updateQty}
         onRemoveItem={removeItem}
         onClearCart={clearCart}

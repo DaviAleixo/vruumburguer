@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User as UserIcon, LogOut, MapPin, Trash2, Edit2, PlusCircle, Ticket, ShoppingBag, PhoneCall } from "lucide-react";
+import { User as UserIcon, LogOut, MapPin, Trash2, Edit2, PlusCircle, Ticket, ShoppingBag, PhoneCall, Pencil, Check, X, Loader2, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/entities/User";
@@ -13,7 +13,7 @@ import { CouponUsage } from "@/entities/CouponUsage";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Copy } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 function AddressForm({ address, onSave, onCancel }) {
   const [formData, setFormData] = useState(
@@ -187,6 +187,10 @@ export default function UserProfileSheet() {
   const [isSubmittingPhone, setIsSubmittingPhone] = useState(false);
   const [phoneError, setPhoneError] = useState("");
 
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+
   useEffect(() => {
     loadUserData();
   }, []);
@@ -268,6 +272,48 @@ export default function UserProfileSheet() {
     window.location.reload();
   };
 
+  const handleSaveName = async (e) => {
+    e?.preventDefault();
+    const cleanName = newName.trim();
+    if (!cleanName) {
+      toast.error("O nome não pode ficar vazio.");
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      const phoneToUse = user?.phone || localStorage.getItem("vrumburguer_customer_phone") || "";
+
+      if (phoneToUse && isSupabaseConfigured() && supabase) {
+        await supabase.rpc("update_customer_name_by_phone", {
+          p_phone: phoneToUse,
+          p_new_name: cleanName
+        });
+      } else if (user?.id) {
+        await User.update(user.id, { full_name: cleanName });
+      }
+
+      const updatedUser = { ...user, full_name: cleanName };
+      setUser(updatedUser);
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("vrumburguer_current_user", JSON.stringify(updatedUser));
+        try {
+          const guestInfo = JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "{}");
+          localStorage.setItem("vrumburguer_guest_info", JSON.stringify({ ...guestInfo, customer_name: cleanName }));
+        } catch {}
+      }
+
+      toast.success("Nome atualizado com sucesso!");
+      setIsEditingName(false);
+    } catch (_err) {
+      console.error("Erro ao salvar nome:", _err);
+      toast.error("Erro ao atualizar nome.");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
   const handleSaveAddress = async (addressData) => {
     if (isEditingAddress && isEditingAddress.id) {
       await UserAddress.update(isEditingAddress.id, addressData);
@@ -303,15 +349,63 @@ export default function UserProfileSheet() {
           {user ? (
             <div className="space-y-6">
               <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-black text-xl shadow-inner">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-black text-xl shadow-inner shrink-0">
                   {user.full_name?.charAt(0)?.toUpperCase() || "C"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 text-base">{user.full_name || "Cliente"}</p>
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold mt-0.5">
-                    <PhoneCall className="w-3.5 h-3.5" />
-                    <span>{user.phone || "WhatsApp Conectado"}</span>
-                  </div>
+                  {isEditingName ? (
+                    <form onSubmit={handleSaveName} className="space-y-1.5 py-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          placeholder="Seu nome"
+                          autoFocus
+                          className="h-8 text-sm bg-white rounded-lg px-2.5"
+                        />
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={isSavingName}
+                          className="h-8 px-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shrink-0"
+                          title="Salvar nome"
+                        >
+                          {isSavingName ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsEditingName(false)}
+                          className="h-8 px-2 text-gray-500 hover:text-gray-800 rounded-lg shrink-0"
+                          title="Cancelar"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-gray-900 text-base truncate">{user.full_name || "Cliente"}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewName(user.full_name || "");
+                            setIsEditingName(true);
+                          }}
+                          title="Alterar nome"
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-gray-200/60 rounded-md transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold mt-0.5">
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>{user.phone || "WhatsApp Conectado"}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

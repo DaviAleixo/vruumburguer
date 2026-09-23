@@ -82,6 +82,8 @@ export async function UploadFile({ file, maxDimension = 800 }) {
         if (publicData?.publicUrl) {
           return { file_url: publicData.publicUrl };
         }
+      } else if (error) {
+        console.warn("[Supabase Storage] Erro no upload para restaurant-images:", error.message || error);
       }
     } catch (err) {
       console.warn("[Storage Upload] Fallback para local após erro:", err);

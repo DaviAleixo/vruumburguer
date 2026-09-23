@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { soundAlert } from "@/utils/soundAlert";
 import TableQRCodeModal from "@/components/admin/TableQRCodeModal";
 import OrderCountdownTimer from "@/components/admin/OrderCountdownTimer";
+import { getStoreStatusInfo, getTodayDateKey } from "@/utils/storeStatus";
 
 /**
  * Determina se o pedido pertence ao turno de trabalho atual da hamburgueria.
@@ -193,6 +194,58 @@ export default function OrdersPage() {
     soundAlert.playOrderChime();
   };
 
+  const [isTogglingStore, setIsTogglingStore] = useState(false);
+
+  const storeStatus = getStoreStatusInfo(settings);
+
+  const handleToggleStoreStatus = async () => {
+    if (!settings?.id) return;
+    setIsTogglingStore(true);
+    try {
+      const todayKey = getTodayDateKey();
+      const newStatus = !storeStatus.isOpen;
+      
+      const updatedData = {
+        manual_store_open: newStatus,
+        manual_override_date: todayKey,
+      };
+
+      await Settings.update(settings.id, updatedData);
+      
+      const newSettings = { ...settings, ...updatedData };
+      setSettings(newSettings);
+      
+      window.dispatchEvent(new CustomEvent("settings_updated", { detail: newSettings }));
+    } catch (err) {
+      console.error("Erro ao alterar status da loja:", err);
+      alert("Erro ao alterar status da loja. Tente novamente.");
+    } finally {
+      setIsTogglingStore(false);
+    }
+  };
+
+  const handleResetToAuto = async () => {
+    if (!settings?.id) return;
+    setIsTogglingStore(true);
+    try {
+      const updatedData = {
+        manual_store_open: null,
+        manual_override_date: null,
+      };
+
+      await Settings.update(settings.id, updatedData);
+      
+      const newSettings = { ...settings, ...updatedData };
+      setSettings(newSettings);
+      
+      window.dispatchEvent(new CustomEvent("settings_updated", { detail: newSettings }));
+    } catch (err) {
+      console.error("Erro ao resetar status da loja:", err);
+    } finally {
+      setIsTogglingStore(false);
+    }
+  };
+
   const handleSetDeliveryTime = async (newTime) => {
     setDeliveryTime(newTime);
     setIsEditingTime(false);
@@ -345,8 +398,49 @@ export default function OrdersPage() {
             <p className="text-sm md:text-base text-gray-600 mt-0.5">Gerencie e acompanhe todos os pedidos do seu restaurante</p>
           </div>
 
-          {/* Barra de Ações Rápidas: Tempo de Entrega, Som e QR Code */}
+          {/* Barra de Ações Rápidas: Status da Loja, Tempo de Entrega, Som e QR Code */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Controle de Abrir / Fechar Restaurante (Manual / Automático) */}
+            <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-1.5 flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isTogglingStore}
+                onClick={handleToggleStoreStatus}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 ${
+                  storeStatus.isOpen
+                    ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300"
+                    : "bg-red-50 text-red-700 hover:bg-red-100 border border-red-300"
+                }`}
+                title={storeStatus.isOpen ? "Clique para Fechar a loja agora (Override manual hoje)" : "Clique para Abrir a loja agora (Override manual hoje)"}
+              >
+                <div className={`w-2.5 h-2.5 rounded-full ${storeStatus.isOpen ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+                <span className="font-extrabold">
+                  {storeStatus.isOpen ? "Loja Aberta" : "Loja Fechada"}
+                </span>
+                {storeStatus.isManual ? (
+                  <span className="text-[10px] bg-white/90 px-1.5 py-0.5 rounded text-stone-600 font-semibold border border-stone-200">
+                    Manual (Hoje)
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-stone-100 px-1.5 py-0.5 rounded text-stone-500 font-medium">
+                    Horário Auto
+                  </span>
+                )}
+              </button>
+
+              {storeStatus.isManual && (
+                <button
+                  type="button"
+                  disabled={isTogglingStore}
+                  onClick={handleResetToAuto}
+                  title="Restaurar para seguir o horário automático configurado"
+                  className="text-[11px] text-amber-700 hover:text-amber-900 underline px-1 font-semibold transition-colors cursor-pointer"
+                >
+                  Voltar p/ Auto
+                </button>
+              )}
+            </div>
+
             {/* Controle de Tempo de Entrega Rápido */}
             <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-1.5 flex items-center gap-1.5">
               <div className="flex items-center gap-1 text-xs font-bold text-stone-700 px-2">

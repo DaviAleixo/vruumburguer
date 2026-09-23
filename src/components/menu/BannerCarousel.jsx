@@ -36,25 +36,9 @@ export default function BannerCarousel({ banners = [] }) {
           >
             <img
               src={banners[currentIndex]?.image_url}
-              alt={banners[currentIndex]?.title || ''}
+              alt=""
               className="w-full h-full object-cover"
             />
-            {/* Gradiente elegante */}
-            <div 
-              className="absolute inset-0" 
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 50%, transparent 100%)' }} 
-            />
-
-            {banners[currentIndex]?.title && (
-              <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
-                <h2
-                  className="text-white text-xl md:text-3xl font-bold leading-tight drop-shadow-lg"
-                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: '-0.02em' }}
-                >
-                  {banners[currentIndex].title}
-                </h2>
-              </div>
-            )}
           </motion.div>
         </AnimatePresence>
 

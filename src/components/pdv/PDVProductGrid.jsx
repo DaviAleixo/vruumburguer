@@ -9,8 +9,18 @@ export default function PDVProductGrid({ products, categories, onAddToCart }) {
   const [flashItems, setFlashItems] = useState(new Set());
 
   const filtered = products.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === "all" || p.category === activeCategory;
+    const q = search.toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      (p.name || "").toLowerCase().includes(q) ||
+      (p.description || "").toLowerCase().includes(q);
+
+    const matchCat =
+      activeCategory === "all" ||
+      p.category === activeCategory ||
+      p.category_id === activeCategory ||
+      categories.find((c) => c.id === activeCategory)?.name === p.category;
+
     return matchSearch && matchCat;
   });
 

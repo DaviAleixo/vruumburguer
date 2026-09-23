@@ -109,6 +109,8 @@ CREATE TABLE IF NOT EXISTS public.settings (
     whatsapp            TEXT DEFAULT '11999999999',
     delivery_fee        NUMERIC(10,2) NOT NULL DEFAULT 6.50,
     min_order_value     NUMERIC(10,2) NOT NULL DEFAULT 20.00,
+    manual_store_open   BOOLEAN DEFAULT NULL,
+    manual_override_date TEXT DEFAULT NULL,
     created_date        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_date        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -399,6 +401,38 @@ CREATE TRIGGER trg_sync_banner_images
 AFTER INSERT OR UPDATE OR DELETE ON public.banner_images
 FOR EACH ROW EXECUTE FUNCTION public.sync_banners_tables();
 
+CREATE OR REPLACE FUNCTION public.sync_banners_to_banner_images()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO public.banner_images (id, title, image_url, order_index, active, created_date, updated_date)
+        VALUES (NEW.id, NEW.title, NEW.image_url, NEW.order_index, NEW.active, NEW.created_date, NEW.updated_date)
+        ON CONFLICT (id) DO UPDATE SET
+            title = EXCLUDED.title,
+            image_url = EXCLUDED.image_url,
+            order_index = EXCLUDED.order_index,
+            active = EXCLUDED.active,
+            updated_date = EXCLUDED.updated_date;
+    ELSIF TG_OP = 'UPDATE' THEN
+        UPDATE public.banner_images SET
+            title = NEW.title,
+            image_url = NEW.image_url,
+            order_index = NEW.order_index,
+            active = NEW.active,
+            updated_date = NEW.updated_date
+        WHERE id = NEW.id;
+    ELSIF TG_OP = 'DELETE' THEN
+        DELETE FROM public.banner_images WHERE id = OLD.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_banners ON public.banners;
+CREATE TRIGGER trg_sync_banners
+AFTER INSERT OR UPDATE OR DELETE ON public.banners
+FOR EACH ROW EXECUTE FUNCTION public.sync_banners_to_banner_images();
+
 -- ---------------------------------------------------------------------
 -- 7. ROW LEVEL SECURITY (RLS) & POLÍTICAS
 -- ---------------------------------------------------------------------
@@ -429,6 +463,20 @@ BEGIN
         EXECUTE format('DROP POLICY IF EXISTS "Public Access Policy for %s" ON public.%I;', tbl, tbl);
         EXECUTE format('CREATE POLICY "Public Access Policy for %s" ON public.%I FOR ALL USING (true) WITH CHECK (true);', tbl, tbl);
     END LOOP;
+END $$;
+
+-- Configuração do bucket público 'restaurant-images' para Storage
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('restaurant-images', 'restaurant-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Public Access restaurant-images" ON storage.objects;
+    CREATE POLICY "Public Access restaurant-images" ON storage.objects
+    FOR ALL USING (bucket_id = 'restaurant-images') WITH CHECK (bucket_id = 'restaurant-images');
+EXCEPTION WHEN OTHERS THEN
+    NULL;
 END $$;
 
 -- ---------------------------------------------------------------------
@@ -577,5 +625,257 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.user_addresses (id, user_email, name, cep, zip_code, street, number, neighborhood, city, state, complement, is_default)
 VALUES ('addr-1', 'cliente@vrumburguer.com', 'Minha Casa', '01001-000', '01001-000', 'Rua das Flores', '123', 'Centro', 'São Paulo', 'SP', 'Apto 42', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- Função de agregação otimizada para listagem de clientes
+CREATE OR REPLACE FUNCTION public.get_clients_summary()
+RETURNS TABLE(
+    id text,
+    full_name text,
+    email text,
+    phone text,
+    role text,
+    created_date timestamp with time zone,
+    total_orders bigint,
+    total_spent numeric,
+    last_order_date timestamp with time zone
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+    WITH registered_users AS (
+        SELECT 
+            u.id::text AS user_id,
+            COALESCE(
+                NULLIF(regexp_replace(u.phone, '\D', '', 'g'), ''),
+                NULLIF(LOWER(TRIM(u.email)), ''),
+                u.id::text
+            ) AS client_key,
+            u.full_name,
+            u.email,
+            u.phone,
+            u.role,
+            u.created_date AS user_created_date
+        FROM public.users u
+        WHERE u.role != 'admin' OR u.role IS NULL
+    ),
+    order_clients AS (
+        SELECT 
+            COALESCE(
+                NULLIF(regexp_replace(ord.customer_phone, '\D', '', 'g'), ''),
+                NULLIF(LOWER(TRIM(COALESCE(NULLIF(ord.customer_email, ''), ord.user_email))), ''),
+                LOWER(TRIM(ord.customer_name))
+            ) AS client_key,
+            MAX(ord.customer_name) AS customer_name,
+            MAX(COALESCE(NULLIF(ord.customer_email, ''), ord.user_email, '')) AS customer_email,
+            MAX(ord.customer_phone) AS customer_phone,
+            MIN(ord.created_date) AS first_order_date,
+            COUNT(CASE WHEN ord.status != 'cancelado' THEN 1 END) AS total_orders,
+            COALESCE(SUM(CASE WHEN ord.status != 'cancelado' THEN ord.total_amount ELSE 0 END), 0) AS total_spent,
+            MAX(CASE WHEN ord.status != 'cancelado' THEN ord.created_date ELSE NULL END) AS last_order_date
+        FROM public.orders ord
+        WHERE (ord.customer_name IS NOT NULL AND ord.customer_name != '')
+           OR (ord.customer_phone IS NOT NULL AND ord.customer_phone != '')
+           OR (ord.customer_email IS NOT NULL AND ord.customer_email != '')
+           OR (ord.user_email IS NOT NULL AND ord.user_email != '')
+        GROUP BY client_key
+    ),
+    all_keys AS (
+        SELECT client_key FROM registered_users WHERE client_key IS NOT NULL
+        UNION
+        SELECT client_key FROM order_clients WHERE client_key IS NOT NULL
+    )
+    SELECT 
+        COALESCE(u.user_id, k.client_key) AS id,
+        COALESCE(NULLIF(u.full_name, ''), NULLIF(o.customer_name, ''), 'Cliente') AS full_name,
+        COALESCE(NULLIF(u.email, ''), NULLIF(o.customer_email, ''), '-') AS email,
+        COALESCE(NULLIF(u.phone, ''), NULLIF(o.customer_phone, ''), '-') AS phone,
+        COALESCE(u.role, 'customer') AS role,
+        COALESCE(u.user_created_date, o.first_order_date, NOW()) AS created_date,
+        COALESCE(o.total_orders, 0)::bigint AS total_orders,
+        COALESCE(o.total_spent, 0)::numeric AS total_spent,
+        o.last_order_date
+    FROM all_keys k
+    LEFT JOIN registered_users u ON u.client_key = k.client_key
+    LEFT JOIN order_clients o ON o.client_key = k.client_key
+    ORDER BY total_spent DESC, total_orders DESC;
+$$;
+
+-- Função para preenchimento automático de cliente guest por telefone
+CREATE OR REPLACE FUNCTION public.lookup_customer_by_phone(p_phone TEXT)
+RETURNS TABLE(
+    customer_name TEXT,
+    customer_email TEXT,
+    customer_phone TEXT,
+    delivery_address TEXT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+    WITH matched_order AS (
+        SELECT 
+            o.customer_name,
+            o.customer_email,
+            o.customer_phone,
+            o.delivery_address,
+            o.created_date
+        FROM public.orders o
+        WHERE regexp_replace(COALESCE(o.customer_phone, ''), '\D', '', 'g') = regexp_replace(p_phone, '\D', '', 'g')
+           OR (
+               LENGTH(regexp_replace(p_phone, '\D', '', 'g')) >= 8 AND
+               regexp_replace(COALESCE(o.customer_phone, ''), '\D', '', 'g') LIKE '%' || RIGHT(regexp_replace(p_phone, '\D', '', 'g'), 8)
+           )
+        ORDER BY o.created_date DESC
+        LIMIT 1
+    ),
+    matched_user AS (
+        SELECT 
+            u.full_name AS customer_name,
+            u.email AS customer_email,
+            u.phone AS customer_phone,
+            NULL::TEXT AS delivery_address,
+            u.created_date
+        FROM public.users u
+        WHERE regexp_replace(COALESCE(u.phone, ''), '\D', '', 'g') = regexp_replace(p_phone, '\D', '', 'g')
+           OR (
+               LENGTH(regexp_replace(p_phone, '\D', '', 'g')) >= 8 AND
+               regexp_replace(COALESCE(u.phone, ''), '\D', '', 'g') LIKE '%' || RIGHT(regexp_replace(p_phone, '\D', '', 'g'), 8)
+           )
+        ORDER BY u.created_date DESC
+        LIMIT 1
+    )
+    SELECT customer_name, customer_email, customer_phone, delivery_address 
+    FROM (
+        SELECT * FROM matched_order
+        UNION ALL
+        SELECT * FROM matched_user
+    ) combined
+    ORDER BY created_date DESC
+    LIMIT 1;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.lookup_customer_by_phone(TEXT) TO anon, authenticated, service_role;
+
+-- Sincronização automática de clientes de pedidos para a tabela users
+CREATE OR REPLACE FUNCTION public.sync_order_customer_to_users()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_clean_phone TEXT;
+    v_user_email TEXT;
+BEGIN
+    v_clean_phone := regexp_replace(COALESCE(NEW.customer_phone, ''), '\D', '', 'g');
+    v_user_email := COALESCE(
+        NULLIF(NEW.customer_email, ''),
+        NULLIF(NEW.user_email, ''),
+        CASE WHEN v_clean_phone != '' THEN v_clean_phone || '@cliente.vrumburguer.com' ELSE NULL END
+    );
+    
+    IF NEW.customer_name IS NOT NULL AND NEW.customer_name != '' AND (v_clean_phone != '' OR v_user_email IS NOT NULL) THEN
+        IF EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE (phone IS NOT NULL AND regexp_replace(phone, '\D', '', 'g') = v_clean_phone)
+               OR (email IS NOT NULL AND v_user_email IS NOT NULL AND email = v_user_email)
+        ) THEN
+            UPDATE public.users 
+            SET full_name = NEW.customer_name,
+                phone = COALESCE(NEW.customer_phone, phone),
+                updated_date = NOW()
+            WHERE (phone IS NOT NULL AND regexp_replace(phone, '\D', '', 'g') = v_clean_phone)
+               OR (email IS NOT NULL AND v_user_email IS NOT NULL AND email = v_user_email);
+        ELSE
+            INSERT INTO public.users (id, full_name, email, phone, role, created_date, updated_date)
+            VALUES (
+                gen_random_uuid(),
+                NEW.customer_name,
+                COALESCE(v_user_email, gen_random_uuid()::text || '@cliente.vrumburguer.com'),
+                NEW.customer_phone,
+                'customer',
+                COALESCE(NEW.created_date, NOW()),
+                NOW()
+            )
+            ON CONFLICT (email) DO UPDATE SET
+                full_name = EXCLUDED.full_name,
+                phone = COALESCE(EXCLUDED.phone, public.users.phone),
+                updated_date = NOW();
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_sync_order_customer ON public.orders;
+CREATE TRIGGER trg_sync_order_customer
+AFTER INSERT OR UPDATE OF customer_name, customer_phone, customer_email ON public.orders
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_order_customer_to_users();
+
+-- Função para atualizar nome do cliente por telefone (sincronizando users e orders)
+CREATE OR REPLACE FUNCTION public.update_customer_name_by_phone(p_phone TEXT, p_new_name TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_clean_phone TEXT;
+    v_rows_users INT := 0;
+    v_rows_orders INT := 0;
+BEGIN
+    v_clean_phone := regexp_replace(COALESCE(p_phone, ''), '\D', '', 'g');
+    
+    IF v_clean_phone = '' OR p_new_name IS NULL OR TRIM(p_new_name) = '' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Dados inválidos');
+    END IF;
+
+    -- Atualiza na tabela users
+    UPDATE public.users
+    SET full_name = TRIM(p_new_name),
+        updated_date = NOW()
+    WHERE regexp_replace(COALESCE(phone, ''), '\D', '', 'g') = v_clean_phone
+       OR (
+           LENGTH(v_clean_phone) >= 8 AND 
+           regexp_replace(COALESCE(phone, ''), '\D', '', 'g') LIKE '%' || RIGHT(v_clean_phone, 8)
+       )
+       OR email = v_clean_phone || '@cliente.vrumburguer.com';
+    GET DIAGNOSTICS v_rows_users = ROW_COUNT;
+
+    -- Se não existia em users, cria o registro
+    IF v_rows_users = 0 THEN
+        INSERT INTO public.users (id, full_name, email, phone, role, created_date, updated_date)
+        VALUES (
+            gen_random_uuid(),
+            TRIM(p_new_name),
+            v_clean_phone || '@cliente.vrumburguer.com',
+            p_phone,
+            'customer',
+            NOW(),
+            NOW()
+        )
+        ON CONFLICT (email) DO UPDATE SET
+            full_name = EXCLUDED.full_name,
+            updated_date = NOW();
+    END IF;
+
+    -- Atualiza na tabela orders
+    UPDATE public.orders
+    SET customer_name = TRIM(p_new_name)
+    WHERE regexp_replace(COALESCE(customer_phone, ''), '\D', '', 'g') = v_clean_phone
+       OR (
+           LENGTH(v_clean_phone) >= 8 AND 
+           regexp_replace(COALESCE(customer_phone, ''), '\D', '', 'g') LIKE '%' || RIGHT(v_clean_phone, 8)
+       )
+       OR user_email = v_clean_phone || '@cliente.vrumburguer.com';
+    GET DIAGNOSTICS v_rows_orders = ROW_COUNT;
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'users_updated', v_rows_users, 
+        'orders_updated', v_rows_orders,
+        'new_name', TRIM(p_new_name)
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.update_customer_name_by_phone(TEXT, TEXT) TO anon, authenticated, service_role;
 
 COMMIT;

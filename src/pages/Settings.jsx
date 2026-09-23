@@ -129,14 +129,24 @@ export default function SettingsPage() {
     }));
   };
 
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      setIsUploadingLogo(true);
       try {
-        const { file_url } = await UploadFile({ file });
+        const { file_url } = await UploadFile({ file, maxDimension: 800 });
         setSettings(prev => ({ ...prev, restaurant_logo: file_url }));
+        
+        // Se já tiver ID de configurações, salva imediatamente o logo no banco
+        if (settingsId) {
+          await Settings.update(settingsId, { restaurant_logo: file_url });
+        }
       } catch (_error) {
         alert("Erro ao fazer upload do logo");
+      } finally {
+        setIsUploadingLogo(false);
       }
     }
   };
@@ -223,9 +233,15 @@ export default function SettingsPage() {
                   type="file"
                   accept="image/*"
                   onChange={handleLogoUpload}
+                  disabled={isUploadingLogo}
                   className="cursor-pointer"
                 />
-                {settings.restaurant_logo && (
+                {isUploadingLogo && (
+                  <p className="text-xs text-amber-600 mt-1 font-medium animate-pulse">
+                    Enviando e processando logo...
+                  </p>
+                )}
+                {settings.restaurant_logo && !isUploadingLogo && (
                   <div className="mt-2">
                     <img
                       src={settings.restaurant_logo}

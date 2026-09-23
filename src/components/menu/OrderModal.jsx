@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, MapPin, Truck, Store, LogIn, Plus, ArrowLeft, Loader2 } from "lucide-react";
+import { AlertCircle, MapPin, Truck, Store, LogIn, Plus, ArrowLeft, Loader2, Pencil, User } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UserAddress } from "@/entities/UserAddress";
 import { Coupon } from "@/entities/Coupon";
 import { CouponUsage } from "@/entities/CouponUsage";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function OrderModal({ 
   isOpen, 
@@ -43,6 +44,7 @@ export default function OrderModal({
   });
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [manualAddress, setManualAddress] = useState("");
+  const nameInputRef = useRef(null);
   
   const savedMesa = initialTableNumber || (typeof window !== "undefined" ? localStorage.getItem("vrumburguer_table_number") || "" : "");
   const [orderType, setOrderType] = useState(savedMesa ? "dine_in" : "delivery");
@@ -111,19 +113,29 @@ export default function OrderModal({
         setUser(null);
       }
 
-      // Se for cliente sem login, carregar dados da última compra salvos no aparelho
+      // Se for cliente sem login, carregar dados da última compra salvos no aparelho ou buscar no banco
       try {
         const savedGuestInfo = JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "null");
+        const savedPhone = localStorage.getItem("vrumburguer_customer_phone");
         if (savedGuestInfo) {
           setCustomerData(prev => ({
             ...prev,
             customer_name: savedGuestInfo.customer_name || prev.customer_name || "",
-            customer_phone: savedGuestInfo.customer_phone || prev.customer_phone || "",
+            customer_phone: savedGuestInfo.customer_phone || (savedPhone ? formatPhone(savedPhone) : "") || prev.customer_phone || "",
             customer_email: savedGuestInfo.customer_email || prev.customer_email || ""
           }));
           if (savedGuestInfo.addressForm) {
             setNewAddressForm(prev => ({ ...prev, ...savedGuestInfo.addressForm }));
           }
+          if ((!savedGuestInfo.customer_name || savedGuestInfo.customer_name === "Cliente") && (savedGuestInfo.customer_phone || savedPhone)) {
+            lookupCustomerByPhone(savedGuestInfo.customer_phone || savedPhone);
+          }
+        } else if (savedPhone) {
+          setCustomerData(prev => ({
+            ...prev,
+            customer_phone: formatPhone(savedPhone)
+          }));
+          lookupCustomerByPhone(savedPhone);
         }
       } catch {}
     };
@@ -296,13 +308,45 @@ export default function OrderModal({
     await onSubmit(orderData);
 
     try {
+      if (customerData.customer_phone) {
+        localStorage.setItem("vrumburguer_customer_phone", customerData.customer_phone);
+      }
       localStorage.setItem("vrumburguer_guest_info", JSON.stringify({
         customer_name: customerData.customer_name,
         customer_phone: customerData.customer_phone,
         customer_email: customerData.customer_email,
         addressForm: newAddressForm
       }));
-    } catch {}
+
+      // Salva o endereço vinculado ao telefone no banco de dados para futuras compras
+      if (orderType === 'delivery' && newAddressForm.street && customerData.customer_phone) {
+        const cleanPhone = customerData.customer_phone.replace(/\D/g, "");
+        const allAddrs = await UserAddress.list();
+        const existing = (allAddrs || []).find(a => 
+          a.user_phone && a.user_phone.replace(/\D/g, "") === cleanPhone &&
+          a.street?.toLowerCase() === newAddressForm.street?.toLowerCase() &&
+          a.number === newAddressForm.number
+        );
+        if (!existing) {
+          await UserAddress.create({
+            user_phone: customerData.customer_phone,
+            user_email: customerData.customer_email || `cliente_${cleanPhone}@cliente.vrumburguer.com`,
+            name: newAddressForm.name || "Endereço de Entrega",
+            street: newAddressForm.street,
+            number: newAddressForm.number,
+            neighborhood: newAddressForm.neighborhood,
+            city: newAddressForm.city || "Contagem",
+            state: newAddressForm.state || "MG",
+            complement: newAddressForm.complement || "",
+            reference: newAddressForm.reference || "",
+            cep: newAddressForm.cep || "",
+            is_default: true,
+          });
+        }
+      }
+    } catch (saveErr) {
+      console.warn("Erro ao salvar dados locais/banco do cliente:", saveErr);
+    }
 
     if (user && !user.phone && customerData.customer_phone) {
       try { await base44.auth.updateMe({ phone: customerData.customer_phone }); } catch {}
@@ -316,10 +360,68 @@ export default function OrderModal({
     return `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7)}`;
   };
 
+  const lookupCustomerByPhone = async (phoneStr) => {
+    if (!phoneStr) return;
+    const cleanDigits = phoneStr.replace(/\D/g, "");
+    if (cleanDigits.length < 10) return;
+
+    try {
+      if (isSupabaseConfigured() && supabase) {
+        const { data, error } = await supabase.rpc("lookup_customer_by_phone", {
+          p_phone: phoneStr
+        });
+
+        if (!error && data && data.length > 0) {
+          const client = data[0];
+          if (client.customer_name) {
+            setCustomerData(prev => ({
+              ...prev,
+              customer_name: (!prev.customer_name || prev.customer_name === "Cliente") ? client.customer_name : prev.customer_name,
+              customer_email: prev.customer_email ? prev.customer_email : (client.customer_email && !client.customer_email.includes("@cliente.vrumburguer.com") ? client.customer_email : prev.customer_email)
+            }));
+          }
+        }
+
+        // Buscar endereços salvos deste telefone
+        const allAddrs = await UserAddress.list();
+        const phoneAddrs = (allAddrs || []).filter(a => 
+          a.user_phone && a.user_phone.replace(/\D/g, "") === cleanDigits
+        );
+        if (phoneAddrs.length > 0) {
+          setAddresses(phoneAddrs);
+          const defaultAddr = phoneAddrs.find(a => a.is_default) || phoneAddrs[0];
+          if (defaultAddr && (!newAddressForm.street || newAddressForm.street === "")) {
+            setSelectedAddress(defaultAddr.id);
+            setNewAddressForm(prev => ({
+              ...prev,
+              street: defaultAddr.street || prev.street,
+              number: defaultAddr.number || prev.number,
+              neighborhood: defaultAddr.neighborhood || prev.neighborhood,
+              city: defaultAddr.city || prev.city,
+              state: defaultAddr.state || prev.state,
+              complement: defaultAddr.complement || prev.complement,
+              reference: defaultAddr.reference || prev.reference,
+              cep: defaultAddr.cep || defaultAddr.zip_code || prev.cep,
+            }));
+          }
+        }
+      }
+    } catch (_err) {
+      console.warn("Erro ao buscar dados do cliente por telefone:", _err);
+    }
+  };
+
   const handleInputChange = (field, value) => {
     const finalValue = field === 'customer_phone' ? formatPhone(value) : value;
     setCustomerData(prev => ({ ...prev, [field]: finalValue }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }));
+
+    if (field === 'customer_phone') {
+      const digits = finalValue.replace(/\D/g, "");
+      if (digits.length >= 10) {
+        lookupCustomerByPhone(finalValue);
+      }
+    }
   };
 
   return (
@@ -628,13 +730,41 @@ export default function OrderModal({
 
           <div className="space-y-3">
             <div>
-              <Label>Nome completo *</Label>
-              <Input
-                value={customerData.customer_name}
-                onChange={(e) => handleInputChange('customer_name', e.target.value)}
-                className={errors.customer_name ? "border-red-500" : ""}
-              />
-              {errors.customer_name && <p className="text-red-500 text-xs mt-1">{errors.customer_name}</p>}
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs font-bold uppercase text-gray-700">Nome completo *</Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    nameInputRef.current?.focus();
+                    nameInputRef.current?.select();
+                  }}
+                  className="text-[11px] text-stone-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                >
+                  <Pencil className="w-3 h-3 text-stone-400" />
+                  <span>Alterar</span>
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  ref={nameInputRef}
+                  value={customerData.customer_name}
+                  onChange={(e) => handleInputChange('customer_name', e.target.value)}
+                  placeholder="Seu nome completo"
+                  className={`pr-9 rounded-xl h-11 text-sm bg-white ${errors.customer_name ? "border-red-500" : "border-stone-300"}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    nameInputRef.current?.focus();
+                    nameInputRef.current?.select();
+                  }}
+                  title="Clique para editar seu nome"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-red-600 transition-colors p-1"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
+              {errors.customer_name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customer_name}</p>}
             </div>
             <div>
               <Label>WhatsApp *</Label>

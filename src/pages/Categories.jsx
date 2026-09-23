@@ -120,7 +120,7 @@ export default function CategoriesPage() {
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-lg text-gray-900">{category.name}</CardTitle>
                       {category.is_combo && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-red-600 text-white px-2.5 py-0.5 rounded-full shadow-sm">
+                        <span className="inline-flex items-center gap-1 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-xs">
                           <Sparkles className="w-3 h-3" />
                           Combos
                         </span>
@@ -131,9 +131,9 @@ export default function CategoriesPage() {
                     <div className="flex items-center justify-between mb-4 text-sm text-gray-500">
                       <span>Ordem: <span className="font-medium text-gray-700">{category.order_index}</span></span>
                       {category.is_combo ? (
-                        <span className="text-xs font-semibold text-red-600">Banner ativo no menu</span>
+                        <span className="text-xs font-bold text-red-600">Banner Promocional Ativo</span>
                       ) : (
-                        <span className="text-xs text-gray-400">Padrão</span>
+                        <span>Padrão</span>
                       )}
                     </div>
                     
@@ -210,20 +210,19 @@ export default function CategoriesPage() {
                 </div>
 
                 {/* Flag de Categoria de Combos */}
-                <div className="flex items-start justify-between gap-3 p-3.5 rounded-xl border border-red-200 bg-red-50/50">
+                <div className="flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100">
                   <div className="space-y-0.5">
                     <Label htmlFor="is_combo" className="text-sm font-bold text-gray-900 cursor-pointer">
                       Categoria de Combos (Banner Promocional)
                     </Label>
                     <p className="text-xs text-gray-500">
-                      Ativa o banner promocional no cardápio direcionando direto para esta categoria. Apenas 1 categoria pode ser definida como combo.
+                      Ativa o card promocional no cardápio direcionando direto para esta categoria.
                     </p>
                   </div>
                   <Switch
                     id="is_combo"
                     checked={categoryForm.is_combo}
                     onCheckedChange={(checked) => setCategoryForm({ ...categoryForm, is_combo: checked })}
-                    className="data-[state=checked]:bg-red-600"
                   />
                 </div>
               </div>

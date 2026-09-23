@@ -180,13 +180,31 @@ export default function Cart({ cart, updateQuantity, onCheckout, deliveryFee, is
             </div>
           </div>
 
-          <button
-            onClick={onCheckout}
-            className="w-full text-white font-bold py-4 rounded-2xl text-sm tracking-tight transition-all active:scale-[0.98]"
-            style={btnStyle}
-          >
-            Finalizar Pedido →
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={onToggle}
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer hover:bg-stone-100"
+              style={{
+                background: 'hsl(36,20%,96%)',
+                color: 'hsl(20,10%,25%)',
+                border: '1.5px solid hsl(36,12%,88%)',
+              }}
+            >
+              <Plus className="w-4 h-4 text-stone-600" />
+              <span>Continuar Comprando</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onCheckout}
+              className="w-full text-white flex items-center justify-center gap-2 py-3.5 px-5 rounded-2xl text-sm font-bold tracking-tight transition-all duration-200 active:scale-[0.98] cursor-pointer"
+              style={btnStyle}
+            >
+              <span>Finalizar Pedido</span>
+              <span className="text-base font-bold">→</span>
+            </button>
+          </div>
         </div>
       )}
     </motion.div>

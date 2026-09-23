@@ -14,6 +14,16 @@ export default function HomePage() {
 
   useEffect(() => {
     loadData();
+
+    const unsubSettings = Settings.subscribe(() => loadData());
+    const unsubBanners = BannerImage.subscribe(() => loadData());
+    const unsubProducts = Product.subscribe(() => loadData());
+
+    return () => {
+      if (typeof unsubSettings === "function") unsubSettings();
+      if (typeof unsubBanners === "function") unsubBanners();
+      if (typeof unsubProducts === "function") unsubProducts();
+    };
   }, []);
 
   const loadData = async () => {

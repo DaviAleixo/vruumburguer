@@ -1,15 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Trash2, Plus, Minus, ShoppingCart, CheckCircle, Printer, X } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, CheckCircle, Printer, X, Users, Phone, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PDVClientSelectModal from "./PDVClientSelectModal";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function PDVCart({
   cart,
   customerName,
   onCustomerNameChange,
+  customerPhone,
+  onCustomerPhoneChange,
+  onCustomerEmailChange,
   onUpdateQty,
   onRemoveItem,
   onClearCart,
@@ -18,7 +23,58 @@ export default function PDVCart({
   lastOrder,
   onDismissSuccess,
 }) {
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [isSearchingPhone, setIsSearchingPhone] = useState(false);
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+
+  const formatPhone = (val) => {
+    const raw = val.replace(/\D/g, "").slice(0, 11);
+    if (raw.length <= 2) return raw.length > 0 ? `(${raw}` : "";
+    if (raw.length <= 7) return `(${raw.slice(0, 2)}) ${raw.slice(2)}`;
+    return `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7)}`;
+  };
+
+  const handlePhoneChange = async (e) => {
+    const formatted = formatPhone(e.target.value);
+    onCustomerPhoneChange(formatted);
+
+    const clean = formatted.replace(/\D/g, "");
+    if (clean.length >= 10) {
+      setIsSearchingPhone(true);
+      try {
+        if (isSupabaseConfigured() && supabase) {
+          const { data, error } = await supabase.rpc("lookup_customer_by_phone", {
+            p_phone: formatted,
+          });
+          if (!error && data && data.length > 0) {
+            const client = data[0];
+            if (client.customer_name && (!customerName || customerName === "Balcão" || customerName === "Cliente")) {
+              onCustomerNameChange(client.customer_name);
+            }
+            if (client.customer_email && onCustomerEmailChange) {
+              onCustomerEmailChange(client.customer_email);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar cliente por telefone no PDV:", err);
+      } finally {
+        setIsSearchingPhone(false);
+      }
+    }
+  };
+
+  const handleSelectClient = (client) => {
+    if (client.name) onCustomerNameChange(client.name);
+    if (client.phone) onCustomerPhoneChange(formatPhone(client.phone));
+    if (client.email && onCustomerEmailChange) onCustomerEmailChange(client.email);
+  };
+
+  const handleClearCustomer = () => {
+    onCustomerNameChange("");
+    onCustomerPhoneChange("");
+    if (onCustomerEmailChange) onCustomerEmailChange("");
+  };
 
   return (
     <div className="w-80 xl:w-96 bg-white border-l border-gray-200 flex flex-col shadow-xl">
@@ -71,16 +127,80 @@ export default function PDVCart({
         </div>
       )}
 
-      {/* Nome do cliente */}
-      <div className="px-4 pt-3 pb-2">
-        <Label className="text-xs text-gray-500 font-medium">Nome do cliente (opcional)</Label>
-        <Input
-          placeholder="Ex: João Silva"
-          value={customerName}
-          onChange={(e) => onCustomerNameChange(e.target.value)}
-          className="mt-1 h-9 text-sm"
-        />
+      {/* Identificação do Cliente */}
+      <div className="px-4 pt-3 pb-2 border-b border-gray-100 bg-stone-50/60 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700">
+            <User className="w-3.5 h-3.5 text-red-600" />
+            <span>Cliente (Opcional)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {(customerName || customerPhone) && (
+              <button
+                type="button"
+                onClick={handleClearCustomer}
+                className="text-[11px] text-stone-400 hover:text-stone-700 px-1 font-semibold"
+                title="Limpar cliente"
+              >
+                Limpar
+              </button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowClientModal(true)}
+              className="h-7 text-xs px-2 rounded-lg bg-white border-stone-200 hover:bg-stone-100 text-stone-700 font-bold gap-1 shadow-2xs"
+            >
+              <Users className="w-3.5 h-3.5 text-red-600" />
+              <span>Clientes Salvos</span>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <Label className="text-[11px] text-gray-500 font-medium">Telefone</Label>
+            <div className="relative mt-0.5">
+              <Input
+                placeholder="(00) 00000-0000"
+                value={customerPhone || ""}
+                onChange={handlePhoneChange}
+                className="h-8 text-xs bg-white rounded-lg"
+              />
+              {isSearchingPhone && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-[11px] text-gray-500 font-medium">Nome</Label>
+            <Input
+              placeholder="Ex: Balcão ou João"
+              value={customerName || ""}
+              onChange={(e) => onCustomerNameChange(e.target.value)}
+              className="mt-0.5 h-8 text-xs bg-white rounded-lg"
+            />
+          </div>
+        </div>
+
+        {customerName && customerPhone && (
+          <div className="bg-emerald-50 text-emerald-800 text-[11px] font-semibold px-2 py-1 rounded-md border border-emerald-200 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-emerald-600" />
+            <span className="truncate">Vinculado a: <b>{customerName}</b> ({customerPhone})</span>
+          </div>
+        )}
       </div>
+
+      {/* Modal de Seleção de Clientes */}
+      <PDVClientSelectModal
+        isOpen={showClientModal}
+        onClose={() => setShowClientModal(false)}
+        onSelectClient={handleSelectClient}
+      />
 
       {/* Itens do Carrinho */}
       <div className="flex-1 overflow-y-auto px-3 py-2">

@@ -17,6 +17,7 @@ export default function BannersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [bannerForm, setBannerForm] = useState({
     title: "",
     image_url: "",
@@ -65,11 +66,14 @@ export default function BannersPage() {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      setIsUploading(true);
       try {
-        const { file_url } = await UploadFile({ file });
+        const { file_url } = await UploadFile({ file, maxDimension: 1200 });
         setBannerForm(prev => ({ ...prev, image_url: file_url }));
       } catch (_error) {
         alert("Erro ao fazer upload da imagem");
+      } finally {
+        setIsUploading(false);
       }
     }
   };
@@ -86,7 +90,7 @@ export default function BannersPage() {
 
   const openEditModal = (banner) => {
     setBannerForm({
-      title: banner.title,
+      title: banner.title || "",
       image_url: banner.image_url,
       order_index: banner.order_index || 0,
       active: banner.active
@@ -127,7 +131,7 @@ export default function BannersPage() {
                     {banner.image_url ? (
                       <img
                         src={banner.image_url}
-                        alt={banner.title}
+                        alt=""
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -136,21 +140,11 @@ export default function BannersPage() {
                       </div>
                     )}
                     
-                    <div className="absolute inset-0 bg-black/40" />
-                    
                     <div className="absolute top-2 right-2 flex gap-1">
                       <div className="w-6 h-6 bg-gray-800/70 rounded-full flex items-center justify-center">
                         <GripVertical className="w-3 h-3 text-white" />
                       </div>
                     </div>
-
-                    {banner.title && (
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <h3 className="text-white font-bold text-lg drop-shadow-lg">
-                          {banner.title}
-                        </h3>
-                      </div>
-                    )}
                   </div>
                   
                   <CardContent className="p-4">
@@ -217,23 +211,13 @@ export default function BannersPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="title">Título do banner *</Label>
-                <Input
-                  id="title"
-                  value={bannerForm.title}
-                  onChange={(e) => setBannerForm({...bannerForm, title: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="image">Imagem do banner *</Label>
                 <Input
                   id="image"
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  className="cursor-pointer"
+                  className="cursor-pointer mt-1"
                   required={!editingBanner && !bannerForm.image_url}
                 />
                 {bannerForm.image_url && (

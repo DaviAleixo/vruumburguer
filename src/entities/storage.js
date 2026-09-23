@@ -10,9 +10,9 @@ const STORAGE_PREFIX = "vrumburguer_db_";
 // Mapeamento de projeção de colunas estritas (PROIBIDO SELECT *)
 // Retorna apenas as colunas indispensáveis para economizar banda/egress do Supabase
 const TABLE_COLUMNS = {
-  settings: "id,restaurant_name,restaurant_logo,opening_time,closing_time,open_days,phone,address,instagram,whatsapp,delivery_fee,min_order_value,delivery_time",
+  settings: "id,restaurant_name,restaurant_logo,opening_time,closing_time,open_days,phone,address,instagram,whatsapp,delivery_fee,min_order_value,delivery_time,manual_store_open,manual_override_date",
   categories: "id,name,order_index,is_combo,created_date",
-  products: "id,name,description,price,category,category_id,image_url,available,created_date",
+  products: "id,name,description,price,category,category_id,image_url,available,popular,created_date",
   product_additionals: "id,product_id,name,price,required,max_quantity,active",
   complement_groups: "id,name,description,min_quantity,max_quantity,required,active,order_index",
   complement_items: "id,group_id,name,description,price,max_quantity,image_url,active,order_index",
@@ -23,17 +23,18 @@ const TABLE_COLUMNS = {
   coupon_usages: "id,coupon_id,user_email,order_id,created_date",
   orders: "id,order_number,customer_name,customer_phone,customer_email,customer_address,delivery_address,total_amount,total,subtotal,delivery_fee,status,payment_method,order_type,table_number,notes,coupon_code,discount_amount,discount,user_email,items,sent_at,created_date",
   users: "id,full_name,email,phone,role,created_date",
-  user_addresses: "id,user_email,name,cep,zip_code,street,number,complement,neighborhood,city,state,is_default",
+  user_addresses: "id,user_email,user_phone,name,cep,zip_code,street,number,complement,neighborhood,city,state,reference,is_default",
 };
 
-// Tabelas estáticas elegíveis para cache persistido em LocalStorage (longa duração)
+// Tabelas estáticas elegíveis para cache persistido em LocalStorage
 const PERSISTENT_CACHE_TABLES = new Set([
   "settings",
   "categories",
   "complement_groups",
   "complement_items",
   "product_complement_groups",
-  "banner_images"
+  "banner_images",
+  "banners"
 ]);
 
 // Memória Cache em tempo de execução para eliminar egress redundante
@@ -43,20 +44,21 @@ const memoryCache = new Map();
 const inFlightPromises = new Map();
 
 // Tabela de tempos de expiração de cache (TTL em milissegundos)
+// Tempos ágeis para garantir atualização imediata no site da loja ao alterar no painel
 const CACHE_TTL_MAP = {
-  settings: 30 * 60 * 1000,              // 30 minutos
-  categories: 30 * 60 * 1000,            // 30 minutos
-  banner_images: 30 * 60 * 1000,         // 30 minutos
-  banners: 30 * 60 * 1000,               // 30 minutos
-  complement_groups: 20 * 60 * 1000,     // 20 minutos
-  complement_items: 20 * 60 * 1000,      // 20 minutos
-  product_complement_groups: 20 * 60 * 1000, // 20 minutos
-  products: 10 * 60 * 1000,              // 10 minutos (com invalidação instantânea no CRUD)
-  product_additionals: 10 * 60 * 1000,   // 10 minutos
-  coupons: 5 * 60 * 1000,                // 5 minutos
-  orders: 5 * 1000,                      // 5 segundos (evita rajadas)
-  users: 2 * 60 * 1000,                  // 2 minutos
-  user_addresses: 2 * 60 * 1000,         // 2 minutos
+  settings: 5 * 1000,                    // 5 segundos
+  categories: 10 * 1000,                 // 10 segundos
+  banner_images: 5 * 1000,               // 5 segundos
+  banners: 5 * 1000,                     // 5 segundos
+  complement_groups: 10 * 1000,          // 10 segundos
+  complement_items: 10 * 1000,           // 10 segundos
+  product_complement_groups: 10 * 1000,  // 10 segundos
+  products: 10 * 1000,                   // 10 segundos (com invalidação instantânea no CRUD)
+  product_additionals: 10 * 1000,        // 10 segundos
+  coupons: 5 * 1000,                     // 5 segundos
+  orders: 3 * 1000,                      // 3 segundos
+  users: 30 * 1000,                      // 30 segundos
+  user_addresses: 30 * 1000,             // 30 segundos
 };
 
 function getCacheKey(collectionKey, method, query, sort, limit) {
@@ -64,16 +66,59 @@ function getCacheKey(collectionKey, method, query, sort, limit) {
 }
 
 export function invalidateCache(collectionKey) {
-  for (const key of memoryCache.keys()) {
-    if (key.startsWith(`${collectionKey}_`)) {
-      memoryCache.delete(key);
+  const keysToInvalidate = [collectionKey];
+  if (collectionKey === "banners" || collectionKey === "banner_images") {
+    keysToInvalidate.push("banners", "banner_images");
+  }
+
+  for (const targetKey of keysToInvalidate) {
+    for (const key of memoryCache.keys()) {
+      if (key.startsWith(`${targetKey}_`)) {
+        memoryCache.delete(key);
+      }
+    }
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(`${STORAGE_PREFIX}cache_ts_${targetKey}`);
+      } catch {}
     }
   }
-  if (PERSISTENT_CACHE_TABLES.has(collectionKey) && typeof window !== "undefined") {
-    try {
-      localStorage.removeItem(`${STORAGE_PREFIX}cache_ts_${collectionKey}`);
-    } catch {}
-  }
+}
+
+// Canal cross-tab para sincronização em tempo real entre painel e loja
+const broadcast = typeof window !== "undefined" && typeof window.BroadcastChannel !== "undefined"
+  ? new BroadcastChannel("vrumburguer_db_sync")
+  : null;
+
+if (broadcast) {
+  broadcast.onmessage = (event) => {
+    const { collectionKey, type, data, id } = event.data || {};
+    if (collectionKey) {
+      invalidateCache(collectionKey);
+      const localEvent = new CustomEvent(`db_event_${collectionKey}`, {
+        detail: { type, data, id },
+      });
+      window.dispatchEvent(localEvent);
+    }
+  };
+}
+
+// Fallback de sincronização cross-tab via StorageEvent
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === `${STORAGE_PREFIX}last_sync` && e.newValue) {
+      try {
+        const { collectionKey, type, data, id } = JSON.parse(e.newValue);
+        if (collectionKey) {
+          invalidateCache(collectionKey);
+          const localEvent = new CustomEvent(`db_event_${collectionKey}`, {
+            detail: { type, data, id },
+          });
+          window.dispatchEvent(localEvent);
+        }
+      } catch {}
+    }
+  });
 }
 
 function getStoredLocalCache(collectionKey, ttl) {
@@ -125,10 +170,26 @@ function setCollection(collectionKey, items) {
 
 function notifySubscribers(collectionKey, type, data, id) {
   if (typeof window === "undefined") return;
-  const event = new CustomEvent(`db_event_${collectionKey}`, {
-    detail: { type, data, id },
-  });
+  const detail = { type, data, id };
+  const event = new CustomEvent(`db_event_${collectionKey}`, { detail });
   window.dispatchEvent(event);
+
+  if (collectionKey === "banners" || collectionKey === "banner_images") {
+    const altKey = collectionKey === "banners" ? "banner_images" : "banners";
+    window.dispatchEvent(new CustomEvent(`db_event_${altKey}`, { detail }));
+  }
+
+  // Cross-tab broadcast
+  if (broadcast) {
+    try {
+      broadcast.postMessage({ collectionKey, type, data, id });
+    } catch {}
+  }
+
+  // LocalStorage fallback para sincronização entre abas
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}last_sync`, JSON.stringify({ collectionKey, type, data, id, ts: Date.now() }));
+  } catch {}
 }
 
 function sortItems(items, sortField) {
@@ -157,7 +218,7 @@ function matchQuery(item, query) {
 }
 
 export function createEntityModel(collectionKey, defaultData = []) {
-  const defaultTTL = CACHE_TTL_MAP[collectionKey] || 60 * 1000;
+  const defaultTTL = CACHE_TTL_MAP[collectionKey] || 5 * 1000;
   const projection = TABLE_COLUMNS[collectionKey] || "*";
 
   return {
@@ -175,7 +236,7 @@ export function createEntityModel(collectionKey, defaultData = []) {
         return inFlightPromises.get(cacheKey);
       }
 
-      // Tenta carregar do cache persistente do LocalStorage
+      // Tenta carregar do cache persistente do LocalStorage se for recente
       if (!queryRequiresFreshNetwork(collectionKey)) {
         const localStored = getStoredLocalCache(collectionKey, defaultTTL);
         if (localStored && Array.isArray(localStored)) {
@@ -197,21 +258,32 @@ export function createEntityModel(collectionKey, defaultData = []) {
               q = q.order(field, { ascending: !isDesc });
             }
             if (limit && limit > 0) q = q.limit(limit);
-            const { data, error } = await q;
-            if (!error && data) {
-              if (data.length > 0) {
-                memoryCache.set(cacheKey, { timestamp: Date.now(), data });
-                setStoredLocalCache(collectionKey, data);
-                return data;
-              }
-              if (data.length === 0 && defaultData.length > 0) {
-                await supabase.from(collectionKey).insert(defaultData);
-                memoryCache.set(cacheKey, { timestamp: Date.now(), data: defaultData });
-                setStoredLocalCache(collectionKey, defaultData);
-                return defaultData;
-              }
-              memoryCache.set(cacheKey, { timestamp: Date.now(), data: [] });
-              return [];
+            let { data, error } = await q;
+
+            // Fallback de compatibilidade caso a tabela não exista (erro SQL)
+            if (error && (collectionKey === "banner_images" || collectionKey === "banners")) {
+              const altTable = collectionKey === "banner_images" ? "banners" : "banner_images";
+              try {
+                let altQ = supabase.from(altTable).select(projection);
+                if (sort) {
+                  const isDesc = sort.startsWith("-");
+                  const field = isDesc ? sort.substring(1) : sort;
+                  altQ = altQ.order(field, { ascending: !isDesc });
+                }
+                if (limit && limit > 0) altQ = altQ.limit(limit);
+                const altRes = await altQ;
+                if (!altRes.error && altRes.data) {
+                  data = altRes.data;
+                  error = null;
+                }
+              } catch {}
+            }
+
+            if (!error && data !== null && data !== undefined) {
+              memoryCache.set(cacheKey, { timestamp: Date.now(), data });
+              setStoredLocalCache(collectionKey, data);
+              setCollection(collectionKey, data);
+              return data;
             }
           } catch (_err) {
             console.warn(`[Supabase] Erro ao listar ${collectionKey}, usando fallback local:`, _err);
@@ -258,8 +330,31 @@ export function createEntityModel(collectionKey, defaultData = []) {
               q = q.order(field, { ascending: !isDesc });
             }
             if (limit && limit > 0) q = q.limit(limit);
-            const { data, error } = await q;
-            if (!error && data) {
+            let { data, error } = await q;
+
+            // Fallback de compatibilidade apenas se houver erro SQL na tabela
+            if (error && (collectionKey === "banner_images" || collectionKey === "banners")) {
+              const altTable = collectionKey === "banner_images" ? "banners" : "banner_images";
+              try {
+                let altQ = supabase.from(altTable).select(projection);
+                if (query && Object.keys(query).length > 0) {
+                  altQ = altQ.match(query);
+                }
+                if (sort) {
+                  const isDesc = sort.startsWith("-");
+                  const field = isDesc ? sort.substring(1) : sort;
+                  altQ = altQ.order(field, { ascending: !isDesc });
+                }
+                if (limit && limit > 0) altQ = altQ.limit(limit);
+                const altRes = await altQ;
+                if (!altRes.error && altRes.data) {
+                  data = altRes.data;
+                  error = null;
+                }
+              } catch {}
+            }
+
+            if (!error && data !== null && data !== undefined) {
               memoryCache.set(cacheKey, { timestamp: Date.now(), data });
               return data;
             }
@@ -311,7 +406,6 @@ export function createEntityModel(collectionKey, defaultData = []) {
 
       if (isSupabaseConfigured() && supabase) {
         try {
-          // OTIMIZAÇÃO EGRESS: Seleciona apenas 'id' no retorno ao invés de devolver todo o objeto
           const { data: created, error } = await supabase
             .from(collectionKey)
             .insert([newItem])
@@ -319,6 +413,10 @@ export function createEntityModel(collectionKey, defaultData = []) {
             .single();
           if (!error && created) {
             invalidateCache(collectionKey);
+            const items = getCollection(collectionKey, defaultData);
+            const updated = [newItem, ...items];
+            setCollection(collectionKey, updated);
+            setStoredLocalCache(collectionKey, updated);
             notifySubscribers(collectionKey, "create", newItem, newId);
             return { ...newItem, id: created.id || newId };
           }
@@ -330,6 +428,7 @@ export function createEntityModel(collectionKey, defaultData = []) {
       const items = getCollection(collectionKey, defaultData);
       const updated = [newItem, ...items];
       setCollection(collectionKey, updated);
+      setStoredLocalCache(collectionKey, updated);
       notifySubscribers(collectionKey, "create", newItem, newId);
       return newItem;
     },
@@ -338,7 +437,6 @@ export function createEntityModel(collectionKey, defaultData = []) {
       invalidateCache(collectionKey);
       if (isSupabaseConfigured() && supabase) {
         try {
-          // OTIMIZAÇÃO EGRESS: Seleciona apenas 'id' no retorno
           const { data: updated, error } = await supabase
             .from(collectionKey)
             .update(data)
@@ -347,6 +445,15 @@ export function createEntityModel(collectionKey, defaultData = []) {
             .single();
           if (!error && updated) {
             invalidateCache(collectionKey);
+            const items = getCollection(collectionKey, defaultData);
+            const updatedItems = items.map((item) => {
+              if (String(item.id) === String(id)) {
+                return { ...item, ...data };
+              }
+              return item;
+            });
+            setCollection(collectionKey, updatedItems);
+            setStoredLocalCache(collectionKey, updatedItems);
             notifySubscribers(collectionKey, "update", { id, ...data }, id);
             return { id, ...data };
           }
@@ -366,6 +473,7 @@ export function createEntityModel(collectionKey, defaultData = []) {
       });
       if (updatedItem) {
         setCollection(collectionKey, updated);
+        setStoredLocalCache(collectionKey, updated);
         notifySubscribers(collectionKey, "update", updatedItem, id);
       }
       return updatedItem || { id, ...data };
@@ -378,6 +486,10 @@ export function createEntityModel(collectionKey, defaultData = []) {
           const { error } = await supabase.from(collectionKey).delete().eq("id", id);
           if (!error) {
             invalidateCache(collectionKey);
+            const items = getCollection(collectionKey, defaultData);
+            const updated = items.filter((item) => String(item.id) !== String(id));
+            setCollection(collectionKey, updated);
+            setStoredLocalCache(collectionKey, updated);
             notifySubscribers(collectionKey, "delete", null, id);
             return { success: true, id };
           }
@@ -389,6 +501,7 @@ export function createEntityModel(collectionKey, defaultData = []) {
       const items = getCollection(collectionKey, defaultData);
       const updated = items.filter((item) => String(item.id) !== String(id));
       setCollection(collectionKey, updated);
+      setStoredLocalCache(collectionKey, updated);
       notifySubscribers(collectionKey, "delete", null, id);
       return { success: true, id };
     },

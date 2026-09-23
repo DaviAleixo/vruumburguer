@@ -149,15 +149,21 @@ export default function MyOrdersPage() {
         filtered = [...filtered, ...guestOrders];
       }
 
-      // Se ainda não achou e tem telefone salvo
-      if (filtered.length === 0 && savedPhone) {
+      // Inclui todos os pedidos vinculados ao telefone do cliente (salvos permanentemente)
+      if (savedPhone) {
         const phoneClean = savedPhone.replace(/\D/g, "");
-        const phoneOrders = allOrders.filter(o => (o.customer_phone || "").replace(/\D/g, "") === phoneClean);
-        filtered = [...filtered, ...phoneOrders];
+        if (phoneClean.length >= 8) {
+          const phoneOrders = allOrders.filter(o => {
+            const op = (o.customer_phone || "").replace(/\D/g, "");
+            return op === phoneClean || (op.length >= 8 && op.endsWith(phoneClean.slice(-8)));
+          });
+          filtered = [...filtered, ...phoneOrders];
+        }
       }
 
-      // Remover duplicatas
-      const unique = Array.from(new Map(filtered.map(item => [item.id, item])).values());
+      // Remover duplicatas e ordenar por mais recente
+      const unique = Array.from(new Map(filtered.map(item => [item.id, item])).values())
+        .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
       setOrders(unique);
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);

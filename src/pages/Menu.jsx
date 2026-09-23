@@ -37,37 +37,7 @@ import {
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import comboBannerImg from "@/assets/images/combo_banner.jpg";
-
-const isStoreOpen = (settings) => {
-  if (!settings) return true;
-
-  const now = new Date();
-  const currentDay = now.getDay();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-
-  if (settings.open_days && settings.open_days.length > 0) {
-    const dayConfig = settings.open_days.find(d => d.day === currentDay);
-    if (!dayConfig || !dayConfig.enabled) return false;
-    if (!dayConfig.opening_time || !dayConfig.closing_time) return true;
-
-    const [oh, om] = dayConfig.opening_time.split(':').map(Number);
-    const [ch, cm] = dayConfig.closing_time.split(':').map(Number);
-    const openTime = oh * 60 + om;
-    const closeTime = ch * 60 + cm;
-
-    if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
-    return currentTime >= openTime && currentTime < closeTime;
-  }
-
-  if (!settings.opening_time || !settings.closing_time) return true;
-  const [openHour, openMinute] = settings.opening_time.split(':').map(Number);
-  const [closeHour, closeMinute] = settings.closing_time.split(':').map(Number);
-  const openTime = openHour * 60 + openMinute;
-  const closeTime = closeHour * 60 + closeMinute;
-  if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
-  return currentTime >= openTime && currentTime < closeTime;
-};
+import { isStoreOpen } from "@/utils/storeStatus";
 
 export default function MenuPage() {
   const navigate = useNavigate();
@@ -104,6 +74,18 @@ export default function MenuPage() {
     loadData();
     checkActiveOrders();
     requestNotificationPermission();
+
+    const unsubSettings = Settings.subscribe(() => loadData());
+    const unsubBanners = BannerImage.subscribe(() => loadData());
+    const unsubProducts = Product.subscribe(() => loadData());
+    const unsubCategories = Category.subscribe(() => loadData());
+
+    return () => {
+      if (typeof unsubSettings === "function") unsubSettings();
+      if (typeof unsubBanners === "function") unsubBanners();
+      if (typeof unsubProducts === "function") unsubProducts();
+      if (typeof unsubCategories === "function") unsubCategories();
+    };
   }, []);
 
   const requestNotificationPermission = async () => {
@@ -353,11 +335,20 @@ export default function MenuPage() {
 
             {/* Ações Topo */}
             <div className="flex items-center gap-1.5">
-              <Link to={createPageUrl("MyOrders")}>
-                <Button variant="ghost" size="icon" title="Meus Pedidos" className="text-stone-300 hover:text-white hover:bg-stone-800/80 rounded-full h-9 w-9">
-                  <ShoppingBag className="w-4 h-4 text-red-400" />
-                </Button>
-              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCartToggle}
+                title="Carrinho"
+                className="relative text-stone-300 hover:text-white hover:bg-stone-800/80 rounded-full h-9 w-9 cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4 text-red-400" />
+                {cart.reduce((total, item) => total + item.quantity, 0) > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow-md animate-in zoom-in-50 duration-150">
+                    {cart.reduce((total, item) => total + item.quantity, 0)}
+                  </span>
+                )}
+              </Button>
               <StoreInfoSheet settings={settings} />
               <UserProfileSheet />
             </div>
@@ -569,10 +560,10 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* Banner Promocional de Combos - Visual Alta Classe / Ultra Premium */}
+        {/* Banner Promocional de Combos - Visual Ultra Premium */}
         {comboCategory && (
           <div 
-            className="rounded-3xl overflow-hidden relative border border-amber-500/30 shadow-2xl p-6 sm:p-9 transition-all hover:border-amber-400/50"
+            className="rounded-3xl overflow-hidden relative border border-amber-500/30 shadow-2xl p-6 sm:p-8 transition-all hover:border-amber-400/50"
             style={{
               background: 'radial-gradient(circle at 85% 50%, rgba(220, 38, 38, 0.22), transparent 55%), linear-gradient(135deg, #1c0e0b 0%, #2b130e 50%, #120907 100%)',
               boxShadow: '0 20px 50px -15px rgba(220, 38, 38, 0.25), 0 0 30px rgba(245, 158, 11, 0.08)'
@@ -582,51 +573,38 @@ export default function MenuPage() {
             <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-red-600/10 blur-3xl pointer-events-none" />
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-7 items-center relative z-10">
-              <div className="md:col-span-7 space-y-4 text-left">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-3.5 text-left flex-1">
                 <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-red-500/20 to-transparent border border-amber-500/40 text-amber-300 text-[11px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full shadow-sm">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span>EXPERIÊNCIA GOURMET EXCLUSIVA</span>
+                  <span>COMBO PROMOCIONAL EXCLUSIVO</span>
                 </div>
                 
                 <h3 
-                  className="text-2xl sm:text-3.5xl font-black text-white leading-tight tracking-tight" 
+                  className="text-2xl sm:text-3xl font-black text-white leading-tight tracking-tight" 
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Conheça a nossa seleção de <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-amber-500">{comboCategory.name}</span>
                 </h3>
                 
-                <p className="text-xs sm:text-sm text-stone-300 max-w-md leading-relaxed font-normal">
-                  Burgers artesanais preparados na brasa, acompanhamentos crocantes e bebida gelada com uma condição exclusiva.
+                <p className="text-xs sm:text-sm text-stone-300 max-w-lg leading-relaxed font-normal">
+                  Burgers artesanais suculentos acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
                 </p>
-                
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveCategory(comboCategory.id);
-                      setSearchQuery("");
-                      window.scrollTo({ top: 120, behavior: 'smooth' });
-                    }}
-                    className="inline-flex items-center gap-2.5 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-red-950/70 hover:shadow-red-600/30 transition-all duration-200 active:scale-95 cursor-pointer border border-amber-400/30"
-                  >
-                    <span>Explorar {comboCategory.name}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
 
-              <div className="md:col-span-5 relative flex justify-center">
-                <div className="w-full max-w-sm aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl border-2 border-amber-500/30 relative group">
-                  <img src={comboBannerImg} alt={comboCategory.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  
-                  {/* Selo Alta Classe */}
-                  <div className="absolute bottom-3 left-3 bg-black/75 backdrop-blur-md border border-amber-400/40 text-amber-300 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-1 rounded-xl shadow-lg flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    <span>Melhor Custo-Benefício</span>
-                  </div>
-                </div>
+              <div className="flex-shrink-0 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory(comboCategory.id);
+                    setSearchQuery("");
+                    window.scrollTo({ top: 180, behavior: 'smooth' });
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-xs sm:text-sm px-6 py-4 rounded-2xl shadow-xl shadow-red-950/70 hover:shadow-red-600/30 transition-all duration-200 active:scale-95 cursor-pointer border border-amber-400/30 whitespace-nowrap"
+                >
+                  <span>Explorar {comboCategory.name}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>

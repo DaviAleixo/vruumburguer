@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import PDVPage from './pages/PDV';
+import DynamicHead from '@/components/DynamicHead';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -88,6 +89,7 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
+        <DynamicHead />
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <NavigationTracker />
           <AuthenticatedApp />
