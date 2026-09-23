@@ -945,15 +945,15 @@ export default function OrderModal({
                     </div>
                   </div>
 
-                  {/* Complemento, Bairro e Cidade */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Complemento e Bairro */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
-                      <Label htmlFor="addr-comp" className="text-xs font-bold text-gray-700">Complemento</Label>
+                      <Label htmlFor="addr-comp" className="text-xs font-bold text-gray-700">Complemento (Opcional)</Label>
                       <Input
                         id="addr-comp"
                         value={newAddressForm.complement}
                         onChange={e => setNewAddressForm({ ...newAddressForm, complement: e.target.value })}
-                        placeholder="Apto, Bloco..."
+                        placeholder="Apto, Bloco, Casa 2..."
                         className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
@@ -971,23 +971,37 @@ export default function OrderModal({
                         className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="addr-city" className="text-xs font-bold text-gray-700">Cidade/UF *</Label>
+                  </div>
+
+                  {/* Cidade e UF */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="col-span-2">
+                      <Label htmlFor="addr-city" className="text-xs font-bold text-gray-700">Cidade *</Label>
                       <Input
                         id="addr-city"
-                        value={newAddressForm.city ? `${newAddressForm.city}${newAddressForm.state ? `/${newAddressForm.state}` : ''}` : ''}
+                        value={newAddressForm.city}
                         onChange={e => {
-                          const parts = e.target.value.split('/');
-                          setNewAddressForm({ 
-                            ...newAddressForm, 
-                            city: parts[0] || e.target.value,
-                            state: parts[1] || newAddressForm.state || "MG"
-                          });
+                          setNewAddressForm(p => ({ ...p, city: e.target.value }));
                           if (errors.address) setErrors(p => ({ ...p, address: "" }));
                         }}
-                        placeholder="Cidade/UF"
+                        placeholder="Cidade"
                         required
                         className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="addr-state" className="text-xs font-bold text-gray-700">UF *</Label>
+                      <Input
+                        id="addr-state"
+                        value={newAddressForm.state}
+                        onChange={e => {
+                          setNewAddressForm(p => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }));
+                          if (errors.address) setErrors(p => ({ ...p, address: "" }));
+                        }}
+                        placeholder="MG"
+                        maxLength={2}
+                        required
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10 uppercase text-center font-bold"
                       />
                     </div>
                   </div>
