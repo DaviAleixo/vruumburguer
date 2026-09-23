@@ -389,6 +389,14 @@ export default function OrderModal({
   const [customerModalData, setCustomerModalData] = useState(null);
   const [lastSearchedPhone, setLastSearchedPhone] = useState("");
 
+  const formatPhone = (value) => {
+    if (!value) return "";
+    const raw = value.replace(/\D/g, "").slice(0, 11);
+    if (raw.length <= 2) return raw.length > 0 ? `(${raw}` : "";
+    if (raw.length <= 7) return `(${raw.slice(0, 2)}) ${raw.slice(2)}`;
+    return `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7)}`;
+  };
+
   const parseAddressString = (addrStr) => {
     if (!addrStr || typeof addrStr !== 'string') return null;
     try {
