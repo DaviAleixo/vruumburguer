@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, MapPin, Truck, Store, LogIn, Plus, ArrowLeft, Loader2, Pencil, User, CheckCircle2, QrCode, CreditCard, Banknote, Zap } from "lucide-react";
+import { AlertCircle, MapPin, Truck, Store, LogIn, Plus, ArrowLeft, Loader2, Pencil, User as UserIcon, CheckCircle2, QrCode, CreditCard, Banknote, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { User } from "@/entities/User";
 import { UserAddress } from "@/entities/UserAddress";
 import { Coupon } from "@/entities/Coupon";
 import { CouponUsage } from "@/entities/CouponUsage";
@@ -499,7 +500,15 @@ export default function OrderModal({
           }));
         }
 
-        // 5. Buscar endereços cadastrados deste telefone
+        // 5. Auto-login com o telefone para sincronizar perfil e pedidos
+        try {
+          const logged = await User.loginWithPhone(phoneStr, foundName || customerData.customer_name || "Cliente");
+          if (logged) {
+            setUser(logged);
+          }
+        } catch {}
+
+        // 6. Buscar endereços cadastrados deste telefone
         let phoneAddrs = [];
         try {
           const { data: dbAddrs } = await supabase
@@ -523,6 +532,7 @@ export default function OrderModal({
           const defaultAddr = phoneAddrs.find(a => a.is_default) || phoneAddrs[0];
           if (defaultAddr) {
             setSelectedAddress(defaultAddr.id);
+            setIsCreatingNewAddress(false);
             setNewAddressForm(prev => ({
               ...prev,
               street: defaultAddr.street || prev.street,
@@ -553,10 +563,10 @@ export default function OrderModal({
           }
         }
 
-        if (foundName || foundAddress) {
-          setPhoneLookupFeedback(`✓ ${foundName ? foundName : "Cliente"} localizado!`);
+        if (foundName || foundAddress || phoneAddrs.length > 0) {
+          setPhoneLookupFeedback(`✓ Conectado! ${foundName ? foundName : "Cliente"} localizado.`);
         } else {
-          setPhoneLookupFeedback("");
+          setPhoneLookupFeedback("✓ Conectado com sucesso!");
         }
       }
     } catch (_err) {
@@ -596,6 +606,73 @@ export default function OrderModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          {/* 1º BLOCO: IDENTIFICAÇÃO DO CLIENTE (WHATSAPP & NOME EM PRIMEIRO LUGAR) */}
+          <div className="bg-stone-50/90 p-4 rounded-2xl border border-stone-200/90 space-y-3 shadow-xs">
+            {/* WhatsApp / Celular */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs font-bold uppercase text-gray-700">WhatsApp / Celular *</Label>
+                {isSearchingPhone && (
+                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 animate-pulse">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando cadastro...
+                  </span>
+                )}
+                {phoneLookupFeedback && (
+                  <span className="text-[10px] text-emerald-600 font-bold animate-fade-in">
+                    {phoneLookupFeedback}
+                  </span>
+                )}
+              </div>
+              <Input
+                value={customerData.customer_phone}
+                onChange={(e) => handleInputChange('customer_phone', e.target.value)}
+                placeholder="(11) 99999-9999"
+                className={`rounded-xl h-11 text-base sm:text-sm bg-white ${errors.customer_phone ? "border-red-500" : (phoneLookupFeedback ? "border-emerald-500 ring-1 ring-emerald-400/30" : "border-stone-300")}`}
+              />
+              {errors.customer_phone && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customer_phone}</p>}
+            </div>
+
+            {/* Nome Completo */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs font-bold uppercase text-gray-700">Nome completo *</Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    nameInputRef.current?.focus();
+                    nameInputRef.current?.select();
+                  }}
+                  className="text-[11px] text-stone-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                >
+                  <Pencil className="w-3 h-3 text-stone-400" />
+                  <span>Alterar</span>
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  ref={nameInputRef}
+                  value={customerData.customer_name}
+                  onChange={(e) => handleInputChange('customer_name', e.target.value)}
+                  placeholder="Seu nome completo"
+                  className={`pr-9 rounded-xl h-11 text-base sm:text-sm bg-white ${errors.customer_name ? "border-red-500" : "border-stone-300"}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    nameInputRef.current?.focus();
+                    nameInputRef.current?.select();
+                  }}
+                  title="Clique para editar seu nome"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-red-600 transition-colors p-1"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
+              {errors.customer_name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customer_name}</p>}
+            </div>
+          </div>
+
+          {/* 2º BLOCO: OPÇÕES DE ENTREGA (DELIVERY, RETIRADA, NA MESA) */}
           <Tabs value={orderType} onValueChange={(val) => {
             setOrderType(val);
             if (errors.table_number) setErrors(prev => ({ ...prev, table_number: "" }));
@@ -714,7 +791,7 @@ export default function OrderModal({
                         onChange={handleCepChange}
                         placeholder="00000-000"
                         maxLength={9}
-                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
                     <div className="sm:col-span-2">
@@ -724,7 +801,7 @@ export default function OrderModal({
                         value={newAddressForm.name}
                         onChange={e => setNewAddressForm({ ...newAddressForm, name: e.target.value })}
                         placeholder="Ex: Minha Casa, Trabalho"
-                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
                   </div>
@@ -742,7 +819,7 @@ export default function OrderModal({
                         }}
                         placeholder="Nome da rua ou avenida"
                         required
-                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
                     <div>
@@ -756,7 +833,7 @@ export default function OrderModal({
                         }}
                         placeholder="123"
                         required
-                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
                   </div>
@@ -770,7 +847,7 @@ export default function OrderModal({
                         value={newAddressForm.complement}
                         onChange={e => setNewAddressForm({ ...newAddressForm, complement: e.target.value })}
                         placeholder="Apto, Bloco..."
-                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
                     <div>
@@ -784,7 +861,7 @@ export default function OrderModal({
                         }}
                         placeholder="Bairro"
                         required
-                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
                     <div>
@@ -803,7 +880,7 @@ export default function OrderModal({
                         }}
                         placeholder="Cidade/UF"
                         required
-                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                        className="mt-1 bg-white rounded-xl text-base sm:text-xs h-10"
                       />
                     </div>
                   </div>
@@ -849,77 +926,15 @@ export default function OrderModal({
                     if (errors.table_number) setErrors(prev => ({ ...prev, table_number: "" }));
                   }}
                   placeholder="Ex: 04 ou Mesa 12"
-                  className={`rounded-xl mt-1.5 h-11 text-sm bg-white ${errors.table_number ? "border-red-500" : "border-stone-300"}`}
+                  className={`rounded-xl mt-1.5 h-11 text-base sm:text-sm bg-white ${errors.table_number ? "border-red-500" : "border-stone-300"}`}
                 />
                 {errors.table_number && <p className="text-red-500 text-xs mt-1 font-medium">{errors.table_number}</p>}
               </div>
             </TabsContent>
           </Tabs>
 
+          {/* 3º BLOCO: FORMA DE PAGAMENTO E OBSERVAÇÕES */}
           <div className="space-y-3 pt-1">
-            {/* 1º: WhatsApp / Celular */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs font-bold uppercase text-gray-700">WhatsApp / Celular *</Label>
-                {isSearchingPhone && (
-                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 animate-pulse">
-                    <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando cadastro...
-                  </span>
-                )}
-                {phoneLookupFeedback && (
-                  <span className="text-[10px] text-emerald-600 font-bold">
-                    {phoneLookupFeedback}
-                  </span>
-                )}
-              </div>
-              <Input
-                value={customerData.customer_phone}
-                onChange={(e) => handleInputChange('customer_phone', e.target.value)}
-                placeholder="(11) 99999-9999"
-                className={`rounded-xl h-11 text-sm bg-white ${errors.customer_phone ? "border-red-500" : (phoneLookupFeedback ? "border-emerald-500 ring-1 ring-emerald-400/30" : "border-stone-300")}`}
-              />
-              {errors.customer_phone && <p className="text-red-500 text-xs mt-1">{errors.customer_phone}</p>}
-            </div>
-
-            {/* 2º: Nome Completo */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs font-bold uppercase text-gray-700">Nome completo *</Label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    nameInputRef.current?.focus();
-                    nameInputRef.current?.select();
-                  }}
-                  className="text-[11px] text-stone-500 hover:text-red-600 flex items-center gap-1 transition-colors"
-                >
-                  <Pencil className="w-3 h-3 text-stone-400" />
-                  <span>Alterar</span>
-                </button>
-              </div>
-              <div className="relative">
-                <Input
-                  ref={nameInputRef}
-                  value={customerData.customer_name}
-                  onChange={(e) => handleInputChange('customer_name', e.target.value)}
-                  placeholder="Seu nome completo"
-                  className={`pr-9 rounded-xl h-11 text-sm bg-white ${errors.customer_name ? "border-red-500" : "border-stone-300"}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    nameInputRef.current?.focus();
-                    nameInputRef.current?.select();
-                  }}
-                  title="Clique para editar seu nome"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-red-600 transition-colors p-1"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-              </div>
-              {errors.customer_name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customer_name}</p>}
-            </div>
-
             <div>
               <Label className="text-xs font-bold uppercase text-gray-700 mb-1.5 block">Forma de pagamento *</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -1007,19 +1022,22 @@ export default function OrderModal({
                     value={changeFor}
                     onChange={(e) => setChangeFor(e.target.value)}
                     placeholder="Ex: Troco para R$ 50,00 ou Não preciso"
-                    className="bg-white text-xs h-9 rounded-lg"
+                    className="bg-white text-base sm:text-xs h-9 rounded-lg"
                   />
                 </div>
               )}
 
               {errors.payment_method && <p className="text-red-500 text-xs mt-1.5 font-medium">{errors.payment_method}</p>}
             </div>
+
             <div>
-              <Label>Observações</Label>
+              <Label className="text-xs font-bold uppercase text-gray-700">Observações (Opcional)</Label>
               <Textarea
                 value={customerData.notes}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 placeholder="Observações sobre o pedido..."
+                className="mt-1 rounded-xl text-base sm:text-sm bg-white"
+                rows={2}
               />
             </div>
           </div>
