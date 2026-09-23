@@ -221,27 +221,41 @@ export default function OrderModal({
 
   const validateForm = () => {
     const newErrors = {};
-    if (!customerData.customer_name) newErrors.customer_name = "Nome é obrigatório.";
-    if (!customerData.customer_phone) newErrors.customer_phone = "WhatsApp é obrigatório.";
+    if (!customerData.customer_name || !customerData.customer_name.trim()) {
+      newErrors.customer_name = "Nome completo é obrigatório para fazer o pedido.";
+    }
+
+    const cleanDigits = (customerData.customer_phone || "").replace(/\D/g, "");
+    if (!cleanDigits || cleanDigits.length < 10) {
+      newErrors.customer_phone = "Telefone / WhatsApp com DDD é obrigatório (mínimo 10 dígitos).";
+    }
 
     if (orderType === 'delivery') {
-      if (isCreatingNewAddress || (!user && !manualAddress)) {
-        if (!newAddressForm.street) newErrors.address = "Informe o nome da rua/logradouro.";
-        if (!newAddressForm.number) newErrors.address = "Informe o número do endereço.";
-        if (!newAddressForm.neighborhood) newErrors.address = "Informe o bairro.";
-        if (!newAddressForm.city) newErrors.address = "Informe a cidade.";
-      } else if (user) {
-        if (!selectedAddress || selectedAddress === "new_address") newErrors.address = "Selecione ou cadastre um endereço.";
+      if (isCreatingNewAddress) {
+        if (!newAddressForm.street?.trim()) newErrors.address = "Informe a rua / logradouro de entrega.";
+        else if (!newAddressForm.number?.trim()) newErrors.address = "Informe o número do endereço de entrega.";
+        else if (!newAddressForm.neighborhood?.trim()) newErrors.address = "Informe o bairro.";
+        else if (!newAddressForm.city?.trim()) newErrors.address = "Informe a cidade.";
+      } else if (user && addresses.length > 0) {
+        if (!selectedAddress || selectedAddress === "new_address") {
+          newErrors.address = "Selecione um endereço salvo ou cadastre um novo endereço.";
+        }
       } else {
-        if (!manualAddress) newErrors.address = "Informe seu endereço de entrega.";
+        if (!manualAddress || !manualAddress.trim()) {
+          newErrors.address = "Endereço de entrega completo é obrigatório (Rua, Número, Bairro, Cidade).";
+        }
       }
     }
 
-    if (orderType === 'dine_in' && !tableNumber.trim()) {
-      newErrors.table_number = "Informe o número da mesa onde você está acomodado.";
+    if (orderType === 'dine_in' && (!tableNumber || !tableNumber.trim())) {
+      newErrors.table_number = "Informe o número da sua mesa.";
     }
-    if (!customerData.payment_method) newErrors.payment_method = "Método de pagamento é obrigatório.";
-    if (finalTotal < minOrderValue) newErrors.total = `O valor mínimo do pedido é de R$ ${minOrderValue.toFixed(2).replace('.', ',')}.`;
+    if (!customerData.payment_method) {
+      newErrors.payment_method = "Selecione a forma de pagamento.";
+    }
+    if (finalTotal < minOrderValue) {
+      newErrors.total = `O valor mínimo do pedido é de R$ ${minOrderValue.toFixed(2).replace('.', ',')}.`;
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -254,7 +268,7 @@ export default function OrderModal({
     let deliveryAddress = "";
     if (orderType === 'delivery') {
       if (isCreatingNewAddress) {
-        deliveryAddress = `${newAddressForm.street}, ${newAddressForm.number}${newAddressForm.complement ? ` (${newAddressForm.complement})` : ''} - ${newAddressForm.neighborhood}, ${newAddressForm.city}/${newAddressForm.state}`;
+        deliveryAddress = `${newAddressForm.street.trim()}, ${newAddressForm.number.trim()}${newAddressForm.complement?.trim() ? ` (${newAddressForm.complement.trim()})` : ''} - ${newAddressForm.neighborhood.trim()}, ${newAddressForm.city.trim()}${newAddressForm.state ? `/${newAddressForm.state.trim()}` : ''}`;
         
         // Salvar endereço no perfil se o usuário estiver logado e marcou para salvar
         if (user?.email && newAddressForm.save_address) {
@@ -263,11 +277,11 @@ export default function OrderModal({
               user_email: user.email,
               name: newAddressForm.name || "Outro Endereço",
               cep: newAddressForm.cep,
-              street: newAddressForm.street,
-              number: newAddressForm.number,
+              street: newAddressForm.street.trim(),
+              number: newAddressForm.number.trim(),
               complement: newAddressForm.complement,
-              neighborhood: newAddressForm.neighborhood,
-              city: newAddressForm.city,
+              neighborhood: newAddressForm.neighborhood.trim(),
+              city: newAddressForm.city.trim(),
               state: newAddressForm.state,
               is_default: addresses.length === 0,
             });
@@ -275,11 +289,16 @@ export default function OrderModal({
             console.error("Erro ao salvar endereço:", err);
           }
         }
-      } else if (user) {
+      } else if (user && addresses.length > 0) {
         const addr = addresses.find(a => a.id === selectedAddress);
         deliveryAddress = addr ? `${addr.street}, ${addr.number}${addr.complement ? ` (${addr.complement})` : ''} - ${addr.neighborhood}, ${addr.city}/${addr.state}` : "";
       } else {
-        deliveryAddress = manualAddress;
+        deliveryAddress = manualAddress?.trim() || "";
+      }
+
+      if (!deliveryAddress) {
+        setErrors(prev => ({ ...prev, address: "Endereço de entrega é obrigatório." }));
+        return;
       }
     }
 
