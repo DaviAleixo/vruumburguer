@@ -154,8 +154,9 @@ export default function OrderModal({
 
   const handleCepChange = async (e) => {
     const raw = e.target.value;
-    const clean = raw.replace(/\D/g, '');
-    setNewAddressForm(prev => ({ ...prev, cep: raw }));
+    const clean = raw.replace(/\D/g, '').slice(0, 8);
+    const formatted = clean.length > 5 ? `${clean.slice(0, 5)}-${clean.slice(5, 8)}` : clean;
+    setNewAddressForm(prev => ({ ...prev, cep: formatted }));
 
     if (clean.length === 8) {
       setIsFetchingCep(true);
@@ -168,9 +169,12 @@ export default function OrderModal({
             street: data.logradouro || prev.street,
             neighborhood: data.bairro || prev.neighborhood,
             city: data.localidade || prev.city,
-            state: data.uf || prev.state,
+            state: data.uf || prev.state || "MG",
           }));
           if (errors.address) setErrors(p => ({ ...p, address: "" }));
+          setTimeout(() => {
+            document.getElementById("addr-num")?.focus();
+          }, 100);
         }
       } catch (_err) {
         console.error("Erro ao buscar CEP:", _err);
@@ -619,150 +623,15 @@ export default function OrderModal({
                 </span>
               </div>
 
-              {/* Se o usuário estiver no modo de cadastrar/digitar outro endereço */}
-              {isCreatingNewAddress ? (
-                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3">
-                  <div className="flex items-center justify-between pb-1 border-b border-stone-200">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-red-600" />
-                      <span className="font-bold text-sm text-gray-900">Novo Endereço de Entrega</span>
-                    </div>
-                    {addresses.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCreatingNewAddress(false);
-                          if (addresses.length > 0) setSelectedAddress(addresses[0].id);
-                        }}
-                        className="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1"
-                      >
-                        <ArrowLeft className="w-3.5 h-3.5" /> Usar Salvo
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div className="sm:col-span-2">
-                      <Label htmlFor="addr-name" className="text-xs font-semibold text-gray-700">Identificação do Local</Label>
-                      <Input
-                        id="addr-name"
-                        value={newAddressForm.name}
-                        onChange={e => setNewAddressForm({ ...newAddressForm, name: e.target.value })}
-                        placeholder="Ex: Trabalho, Casa da Namorada"
-                        className="mt-1 bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="addr-cep" className="text-xs font-semibold text-gray-700">CEP</Label>
-                        {isFetchingCep && (
-                          <span className="text-[10px] text-red-600 flex items-center gap-0.5 animate-pulse">
-                            <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando
-                          </span>
-                        )}
-                      </div>
-                      <Input
-                        id="addr-cep"
-                        value={newAddressForm.cep}
-                        onChange={handleCepChange}
-                        placeholder="00000-000"
-                        maxLength={9}
-                        className="mt-1 bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <div className="col-span-2">
-                      <Label htmlFor="addr-street" className="text-xs font-semibold text-gray-700">Rua / Logradouro *</Label>
-                      <Input
-                        id="addr-street"
-                        value={newAddressForm.street}
-                        onChange={e => setNewAddressForm({ ...newAddressForm, street: e.target.value })}
-                        placeholder="Nome da rua ou avenida"
-                        required
-                        className="mt-1 bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="addr-num" className="text-xs font-semibold text-gray-700">Número *</Label>
-                      <Input
-                        id="addr-num"
-                        value={newAddressForm.number}
-                        onChange={e => setNewAddressForm({ ...newAddressForm, number: e.target.value })}
-                        placeholder="123"
-                        required
-                        className="mt-1 bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div>
-                      <Label htmlFor="addr-comp" className="text-xs font-semibold text-gray-700">Complemento</Label>
-                      <Input
-                        id="addr-comp"
-                        value={newAddressForm.complement}
-                        onChange={e => setNewAddressForm({ ...newAddressForm, complement: e.target.value })}
-                        placeholder="Apto, Bloco..."
-                        className="mt-1 bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="addr-neigh" className="text-xs font-semibold text-gray-700">Bairro *</Label>
-                      <Input
-                        id="addr-neigh"
-                        value={newAddressForm.neighborhood}
-                        onChange={e => setNewAddressForm({ ...newAddressForm, neighborhood: e.target.value })}
-                        placeholder="Bairro"
-                        required
-                        className="mt-1 bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="addr-city" className="text-xs font-semibold text-gray-700">Cidade/UF *</Label>
-                      <Input
-                        id="addr-city"
-                        value={newAddressForm.city ? `${newAddressForm.city}${newAddressForm.state ? `/${newAddressForm.state}` : ''}` : ''}
-                        onChange={e => {
-                          const parts = e.target.value.split('/');
-                          setNewAddressForm({ 
-                            ...newAddressForm, 
-                            city: parts[0] || e.target.value,
-                            state: parts[1] || newAddressForm.state
-                          });
-                        }}
-                        placeholder="Cidade/UF"
-                        required
-                        className="mt-1 bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                  </div>
-
-                  {user?.email && (
-                    <label className="flex items-center gap-2 pt-1 cursor-pointer">
-                      <Checkbox
-                        checked={newAddressForm.save_address}
-                        onCheckedChange={c => setNewAddressForm({ ...newAddressForm, save_address: !!c })}
-                        className="data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
-                      />
-                      <span className="text-xs font-medium text-gray-700">
-                        Salvar este endereço para futuros pedidos
-                      </span>
-                    </label>
-                  )}
-
-                  {errors.address && <p className="text-red-500 text-xs font-semibold">{errors.address}</p>}
-                </div>
-              ) : user && addresses.length > 0 ? (
-                // Usuário logado: Seletor de Endereços Salvos + Opção de Novo Endereço
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
+              {/* Se o cliente tiver endereços salvos e não estiver cadastrando outro */}
+              {addresses.length > 0 && !isCreatingNewAddress ? (
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2">
+                  <div className="flex items-center justify-between mb-1">
                     <Label className="text-xs font-bold uppercase text-gray-700">Endereço de entrega *</Label>
                     <button
                       type="button"
                       onClick={() => setIsCreatingNewAddress(true)}
-                      className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1"
+                      className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" /> + Outro Endereço
                     </button>
@@ -778,7 +647,7 @@ export default function OrderModal({
                       }
                     }}
                   >
-                    <SelectTrigger className={`rounded-xl h-auto py-2.5 ${errors.address ? "border-red-500" : "border-stone-200"}`}>
+                    <SelectTrigger className={`rounded-xl h-auto py-2.5 bg-white ${errors.address ? "border-red-500" : "border-stone-200"}`}>
                       <SelectValue placeholder="Selecione um endereço" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl">
@@ -787,7 +656,7 @@ export default function OrderModal({
                           <div className="flex items-start gap-2.5 text-left">
                             <MapPin className="w-4 h-4 mt-0.5 text-red-600 flex-shrink-0" />
                             <div>
-                              <p className="font-bold text-sm text-gray-900">{address.name}</p>
+                              <p className="font-bold text-sm text-gray-900">{address.name || "Endereço"}</p>
                               <p className="text-xs text-gray-500 line-clamp-1">
                                 {address.street}, {address.number}{address.complement ? ` (${address.complement})` : ''} - {address.neighborhood}
                               </p>
@@ -796,11 +665,10 @@ export default function OrderModal({
                         </SelectItem>
                       ))}
 
-                      {/* Opção para cadastrar outro endereço */}
                       <SelectItem value="new_address" className="border-t mt-1 font-bold text-red-600 bg-red-50/60 focus:bg-red-50 focus:text-red-700 py-2.5 cursor-pointer">
                         <div className="flex items-center gap-2">
                           <Plus className="w-4 h-4 text-red-600" />
-                          <span>+ Entregar em outro endereço</span>
+                          <span>+ Cadastrar outro endereço</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -808,25 +676,139 @@ export default function OrderModal({
                   {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                 </div>
               ) : (
-                // Sem endereços salvos: formulário direto
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <Label className="text-xs font-bold uppercase text-gray-700">Endereço de entrega *</Label>
-                    <button
-                      type="button"
-                      onClick={() => setIsCreatingNewAddress(true)}
-                      className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Detalhar Endereço
-                    </button>
+                // Formulário estruturado com CEP (padrão para todos os clientes sem login ou com novo endereço)
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3">
+                  <div className="flex items-center justify-between pb-1 border-b border-stone-200">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-red-600" />
+                      <span className="font-bold text-sm text-gray-900">Endereço de Entrega</span>
+                    </div>
+                    {addresses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCreatingNewAddress(false);
+                          if (addresses.length > 0) setSelectedAddress(addresses[0].id);
+                        }}
+                        className="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" /> Usar Salvo
+                      </button>
+                    )}
                   </div>
-                  <Input
-                    value={manualAddress}
-                    onChange={(e) => { setManualAddress(e.target.value); if (errors.address) setErrors(p => ({...p, address: ""})); }}
-                    placeholder="Rua, número, complemento, bairro, cidade..."
-                    className={`rounded-xl text-sm ${errors.address ? "border-red-500" : ""}`}
-                  />
-                  {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+
+                  {/* CEP e Identificação */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="addr-cep" className="text-xs font-bold text-gray-700">CEP</Label>
+                        {isFetchingCep && (
+                          <span className="text-[10px] text-red-600 flex items-center gap-0.5 animate-pulse font-semibold">
+                            <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando
+                          </span>
+                        )}
+                      </div>
+                      <Input
+                        id="addr-cep"
+                        value={newAddressForm.cep}
+                        onChange={handleCepChange}
+                        placeholder="00000-000"
+                        maxLength={9}
+                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="addr-name" className="text-xs font-bold text-gray-700">Identificação do Local (Opcional)</Label>
+                      <Input
+                        id="addr-name"
+                        value={newAddressForm.name}
+                        onChange={e => setNewAddressForm({ ...newAddressForm, name: e.target.value })}
+                        placeholder="Ex: Minha Casa, Trabalho"
+                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Rua e Número */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="col-span-2">
+                      <Label htmlFor="addr-street" className="text-xs font-bold text-gray-700">Rua / Logradouro *</Label>
+                      <Input
+                        id="addr-street"
+                        value={newAddressForm.street}
+                        onChange={e => {
+                          setNewAddressForm({ ...newAddressForm, street: e.target.value });
+                          if (errors.address) setErrors(p => ({ ...p, address: "" }));
+                        }}
+                        placeholder="Nome da rua ou avenida"
+                        required
+                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="addr-num" className="text-xs font-bold text-gray-700">Número *</Label>
+                      <Input
+                        id="addr-num"
+                        value={newAddressForm.number}
+                        onChange={e => {
+                          setNewAddressForm({ ...newAddressForm, number: e.target.value });
+                          if (errors.address) setErrors(p => ({ ...p, address: "" }));
+                        }}
+                        placeholder="123"
+                        required
+                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Complemento, Bairro e Cidade */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <Label htmlFor="addr-comp" className="text-xs font-bold text-gray-700">Complemento</Label>
+                      <Input
+                        id="addr-comp"
+                        value={newAddressForm.complement}
+                        onChange={e => setNewAddressForm({ ...newAddressForm, complement: e.target.value })}
+                        placeholder="Apto, Bloco..."
+                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="addr-neigh" className="text-xs font-bold text-gray-700">Bairro *</Label>
+                      <Input
+                        id="addr-neigh"
+                        value={newAddressForm.neighborhood}
+                        onChange={e => {
+                          setNewAddressForm({ ...newAddressForm, neighborhood: e.target.value });
+                          if (errors.address) setErrors(p => ({ ...p, address: "" }));
+                        }}
+                        placeholder="Bairro"
+                        required
+                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="addr-city" className="text-xs font-bold text-gray-700">Cidade/UF *</Label>
+                      <Input
+                        id="addr-city"
+                        value={newAddressForm.city ? `${newAddressForm.city}${newAddressForm.state ? `/${newAddressForm.state}` : ''}` : ''}
+                        onChange={e => {
+                          const parts = e.target.value.split('/');
+                          setNewAddressForm({ 
+                            ...newAddressForm, 
+                            city: parts[0] || e.target.value,
+                            state: parts[1] || newAddressForm.state || "MG"
+                          });
+                          if (errors.address) setErrors(p => ({ ...p, address: "" }));
+                        }}
+                        placeholder="Cidade/UF"
+                        required
+                        className="mt-1 bg-white rounded-xl text-xs h-10"
+                      />
+                    </div>
+                  </div>
+
+                  {errors.address && <p className="text-red-500 text-xs font-semibold">{errors.address}</p>}
                 </div>
               )}
             </TabsContent>
