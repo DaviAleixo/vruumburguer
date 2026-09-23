@@ -239,18 +239,18 @@ export default function OrderModal({
     }
 
     if (orderType === 'delivery') {
-      if (isCreatingNewAddress) {
-        if (!newAddressForm.street?.trim()) newErrors.address = "Informe a rua / logradouro de entrega.";
-        else if (!newAddressForm.number?.trim()) newErrors.address = "Informe o número do endereço de entrega.";
-        else if (!newAddressForm.neighborhood?.trim()) newErrors.address = "Informe o bairro.";
-        else if (!newAddressForm.city?.trim()) newErrors.address = "Informe a cidade.";
-      } else if (user && addresses.length > 0) {
-        if (!selectedAddress || selectedAddress === "new_address") {
-          newErrors.address = "Selecione um endereço salvo ou cadastre um novo endereço.";
-        }
+      if (addresses.length > 0 && selectedAddress && selectedAddress !== "new_address" && !isCreatingNewAddress) {
+        // Endereço selecionado da lista de salvos
       } else {
-        if (!manualAddress || !manualAddress.trim()) {
-          newErrors.address = "Endereço de entrega completo é obrigatório (Rua, Número, Bairro, Cidade).";
+        // Formulário de endereço digitado
+        if (!newAddressForm.street?.trim()) {
+          newErrors.address = "Informe a rua / logradouro de entrega.";
+        } else if (!newAddressForm.number?.trim()) {
+          newErrors.address = "Informe o número do endereço de entrega.";
+        } else if (!newAddressForm.neighborhood?.trim()) {
+          newErrors.address = "Informe o bairro.";
+        } else if (!newAddressForm.city?.trim()) {
+          newErrors.address = "Informe a cidade.";
         }
       }
     }
@@ -275,38 +275,45 @@ export default function OrderModal({
 
     let deliveryAddress = "";
     if (orderType === 'delivery') {
-      if (isCreatingNewAddress) {
-        deliveryAddress = `${newAddressForm.street.trim()}, ${newAddressForm.number.trim()}${newAddressForm.complement?.trim() ? ` (${newAddressForm.complement.trim()})` : ''} - ${newAddressForm.neighborhood.trim()}, ${newAddressForm.city.trim()}${newAddressForm.state ? `/${newAddressForm.state.trim()}` : ''}`;
-        
-        // Salvar endereço no perfil se o usuário estiver logado e marcou para salvar
-        if (user?.email && newAddressForm.save_address) {
-          try {
-            await UserAddress.create({
-              user_email: user.email,
-              name: newAddressForm.name || "Outro Endereço",
-              cep: newAddressForm.cep,
-              street: newAddressForm.street.trim(),
-              number: newAddressForm.number.trim(),
-              complement: newAddressForm.complement,
-              neighborhood: newAddressForm.neighborhood.trim(),
-              city: newAddressForm.city.trim(),
-              state: newAddressForm.state,
-              is_default: addresses.length === 0,
-            });
-          } catch (err) {
-            console.error("Erro ao salvar endereço:", err);
-          }
-        }
-      } else if (user && addresses.length > 0) {
+      if (addresses.length > 0 && selectedAddress && selectedAddress !== "new_address" && !isCreatingNewAddress) {
         const addr = addresses.find(a => a.id === selectedAddress);
-        deliveryAddress = addr ? `${addr.street}, ${addr.number}${addr.complement ? ` (${addr.complement})` : ''} - ${addr.neighborhood}, ${addr.city}/${addr.state}` : "";
-      } else {
-        deliveryAddress = manualAddress?.trim() || "";
+        if (addr) {
+          deliveryAddress = `${addr.street}, ${addr.number}${addr.complement ? ` (${addr.complement})` : ''} - ${addr.neighborhood}, ${addr.city}/${addr.state || 'MG'}`;
+        }
+      } 
+      
+      if (!deliveryAddress) {
+        if (newAddressForm.street?.trim()) {
+          deliveryAddress = `${newAddressForm.street.trim()}, ${newAddressForm.number?.trim() || 'S/N'}${newAddressForm.complement?.trim() ? ` (${newAddressForm.complement.trim()})` : ''} - ${newAddressForm.neighborhood?.trim() || ''}, ${newAddressForm.city?.trim() || ''}${newAddressForm.state ? `/${newAddressForm.state.trim()}` : ''}`;
+        } else if (manualAddress?.trim()) {
+          deliveryAddress = manualAddress.trim();
+        }
       }
 
       if (!deliveryAddress) {
-        setErrors(prev => ({ ...prev, address: "Endereço de entrega é obrigatório." }));
+        setErrors(prev => ({ ...prev, address: "Informe a rua e o número de entrega." }));
         return;
+      }
+
+      // Salvar endereço no perfil se o usuário estiver logado e marcou para salvar
+      if (user?.email && newAddressForm.save_address && newAddressForm.street) {
+        try {
+          await UserAddress.create({
+            user_email: user.email,
+            user_phone: customerData.customer_phone,
+            name: newAddressForm.name || "Outro Endereço",
+            cep: newAddressForm.cep,
+            street: newAddressForm.street.trim(),
+            number: newAddressForm.number?.trim() || "S/N",
+            complement: newAddressForm.complement,
+            neighborhood: newAddressForm.neighborhood?.trim() || "",
+            city: newAddressForm.city?.trim() || "",
+            state: newAddressForm.state || "MG",
+            is_default: addresses.length === 0,
+          });
+        } catch (err) {
+          console.error("Erro ao salvar endereço:", err);
+        }
       }
     }
 
