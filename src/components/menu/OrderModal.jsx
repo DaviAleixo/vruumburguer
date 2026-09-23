@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, MapPin, Truck, Store, LogIn, Plus, ArrowLeft, Loader2, Pencil, User } from "lucide-react";
+import { AlertCircle, MapPin, Truck, Store, LogIn, Plus, ArrowLeft, Loader2, Pencil, User, CheckCircle2, QrCode, CreditCard, Banknote, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UserAddress } from "@/entities/UserAddress";
 import { Coupon } from "@/entities/Coupon";
@@ -56,6 +56,7 @@ export default function OrderModal({
     payment_method: "",
     notes: ""
   });
+  const [changeFor, setChangeFor] = useState("");
   const [errors, setErrors] = useState({});
   const [user, setUser] = useState(null);
   const [couponCode, setCouponCode] = useState("");
@@ -302,8 +303,13 @@ export default function OrderModal({
       }
     }
 
+    const finalNotes = customerData.notes 
+      ? (customerData.payment_method === 'dinheiro' && changeFor.trim() ? `${customerData.notes} | Troco para: ${changeFor.trim()}` : customerData.notes)
+      : (customerData.payment_method === 'dinheiro' && changeFor.trim() ? `Troco para: ${changeFor.trim()}` : "");
+
     const orderData = {
       ...customerData,
+      notes: finalNotes,
       user_email: user?.email,
       customer_address: deliveryAddress,
       total_amount: finalTotal,
@@ -846,18 +852,98 @@ export default function OrderModal({
               {errors.customer_phone && <p className="text-red-500 text-xs mt-1">{errors.customer_phone}</p>}
             </div>
             <div>
-              <Label>Método de pagamento *</Label>
-              <Select value={customerData.payment_method} onValueChange={(v) => handleInputChange('payment_method', v)}>
-                <SelectTrigger className={errors.payment_method ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Escolha o método" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="cartao">Cartão (máquina na entrega)</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.payment_method && <p className="text-red-500 text-xs mt-1">{errors.payment_method}</p>}
+              <Label className="text-xs font-bold uppercase text-gray-700 mb-1.5 block">Forma de pagamento *</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {/* Opção PIX */}
+                <button
+                  type="button"
+                  onClick={() => handleInputChange('payment_method', 'pix')}
+                  className={`relative p-3 rounded-2xl border text-left flex flex-col justify-between gap-1.5 transition-all cursor-pointer ${
+                    customerData.payment_method === 'pix'
+                      ? 'border-emerald-600 bg-emerald-50/90 ring-2 ring-emerald-500/30 text-emerald-950 shadow-sm'
+                      : 'border-stone-200 bg-white hover:border-stone-300 text-stone-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xl">📱</span>
+                    {customerData.payment_method === 'pix' && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-xs sm:text-sm leading-tight">PIX</p>
+                    <span className="text-[10px] text-emerald-700 font-semibold block leading-tight mt-0.5">
+                      Mais rápido ⚡
+                    </span>
+                  </div>
+                </button>
+
+                {/* Opção Cartão */}
+                <button
+                  type="button"
+                  onClick={() => handleInputChange('payment_method', 'cartao')}
+                  className={`relative p-3 rounded-2xl border text-left flex flex-col justify-between gap-1.5 transition-all cursor-pointer ${
+                    customerData.payment_method === 'cartao'
+                      ? 'border-blue-600 bg-blue-50/90 ring-2 ring-blue-500/30 text-blue-950 shadow-sm'
+                      : 'border-stone-200 bg-white hover:border-stone-300 text-stone-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xl">💳</span>
+                    {customerData.payment_method === 'cartao' && (
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-xs sm:text-sm leading-tight">Cartão</p>
+                    <span className="text-[10px] text-stone-500 block leading-tight mt-0.5">
+                      Na entrega/balcão
+                    </span>
+                  </div>
+                </button>
+
+                {/* Opção Dinheiro */}
+                <button
+                  type="button"
+                  onClick={() => handleInputChange('payment_method', 'dinheiro')}
+                  className={`relative p-3 rounded-2xl border text-left flex flex-col justify-between gap-1.5 transition-all cursor-pointer ${
+                    customerData.payment_method === 'dinheiro'
+                      ? 'border-amber-600 bg-amber-50/90 ring-2 ring-amber-500/30 text-amber-950 shadow-sm'
+                      : 'border-stone-200 bg-white hover:border-stone-300 text-stone-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xl">💵</span>
+                    {customerData.payment_method === 'dinheiro' && (
+                      <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-xs sm:text-sm leading-tight">Dinheiro</p>
+                    <span className="text-[10px] text-stone-500 block leading-tight mt-0.5">
+                      Com/sem troco
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Campo de troco quando seleciona Dinheiro */}
+              {customerData.payment_method === 'dinheiro' && (
+                <div className="mt-2.5 p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1.5">
+                  <Label htmlFor="change-for" className="text-xs font-semibold text-amber-950">
+                    Precisa de troco? Para quanto? (Opcional)
+                  </Label>
+                  <Input
+                    id="change-for"
+                    value={changeFor}
+                    onChange={(e) => setChangeFor(e.target.value)}
+                    placeholder="Ex: Troco para R$ 50,00 ou Não preciso"
+                    className="bg-white text-xs h-9 rounded-lg"
+                  />
+                </div>
+              )}
+
+              {errors.payment_method && <p className="text-red-500 text-xs mt-1.5 font-medium">{errors.payment_method}</p>}
             </div>
             <div>
               <Label>Observações</Label>
