@@ -593,7 +593,7 @@ export default function OrderModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-lg max-h-[94vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6 rounded-t-3xl sm:rounded-3xl border-stone-200">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6 rounded-3xl border-stone-200">
         <DialogHeader className="pb-1">
           <DialogTitle className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Finalizar Pedido</DialogTitle>
         </DialogHeader>
