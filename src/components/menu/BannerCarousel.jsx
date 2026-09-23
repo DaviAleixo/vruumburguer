@@ -22,8 +22,8 @@ export default function BannerCarousel({ banners = [] }) {
   return (
     <div className="w-full">
       <div 
-        className="relative w-full overflow-hidden" 
-        style={{ aspectRatio: '3/1', minHeight: '160px', background: '#120e0d' }}
+        className="relative w-full overflow-hidden aspect-[16/8] sm:aspect-[21/9] md:aspect-[3/1] min-h-[160px] max-h-[380px]" 
+        style={{ background: '#120e0d' }}
       >
         <AnimatePresence mode="wait">
           <motion.div

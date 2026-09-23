@@ -180,7 +180,7 @@ export default function ProductDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-3xl border-0 shadow-2xl">
+      <DialogContent className="w-full max-w-lg max-h-[94vh] sm:max-h-[88vh] overflow-y-auto p-0 gap-0 rounded-t-3xl sm:rounded-3xl border-0 shadow-2xl">
         {/* Banner do Produto com Imagem ou Header */}
         <div className="relative">
           {product.image_url ? (
@@ -397,13 +397,13 @@ export default function ProductDetailModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="resize-none rounded-xl text-sm"
+              className="resize-none rounded-2xl text-base sm:text-sm bg-stone-50 border-stone-200 focus:bg-white"
             />
           </div>
         </div>
 
         {/* Rodapé Fixo */}
-        <div className="sticky bottom-0 bg-white border-t border-stone-200 p-4 sm:p-5 space-y-3 shadow-lg">
+        <div className="sticky bottom-0 bg-white/98 backdrop-blur-md border-t border-stone-200 p-4 pb-6 sm:pb-4 sm:p-5 space-y-3 shadow-lg z-20">
           {!validation.isValid && (
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold animate-pulse">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />

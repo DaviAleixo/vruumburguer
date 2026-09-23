@@ -159,7 +159,7 @@ export default function Cart({ cart, updateQuantity, onCheckout, deliveryFee, is
 
       {/* Footer */}
       {cart.length > 0 && (
-        <div className="px-5 py-4" style={{ borderTop: '1px solid hsl(36,12%,93%)', background: '#fff' }}>
+        <div className="px-5 py-4 pb-7 sm:pb-4" style={{ borderTop: '1px solid hsl(36,12%,93%)', background: '#fff' }}>
           <div className="space-y-1.5 mb-4">
             <div className="flex justify-between text-sm" style={{ color: 'hsl(20,8%,52%)' }}>
               <span>Subtotal</span>

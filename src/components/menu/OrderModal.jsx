@@ -583,9 +583,9 @@ export default function OrderModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[96vw] max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-stone-200">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-bold text-gray-900">Finalizar Pedido</DialogTitle>
+      <DialogContent className="w-full max-w-lg max-h-[94vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6 rounded-t-3xl sm:rounded-3xl border-stone-200">
+        <DialogHeader className="pb-1">
+          <DialogTitle className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Finalizar Pedido</DialogTitle>
         </DialogHeader>
 
         {errors.total && (
@@ -601,13 +601,13 @@ export default function OrderModal({
             if (errors.table_number) setErrors(prev => ({ ...prev, table_number: "" }));
           }} className="w-full">
             <TabsList className="grid w-full grid-cols-3 rounded-2xl p-1 bg-stone-100 h-auto gap-1">
-              <TabsTrigger value="delivery" className="rounded-xl font-bold text-[11px] sm:text-xs py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-red-600">
-                <Truck className="w-3.5 h-3.5 mr-1.5 shrink-0"/>Delivery
+              <TabsTrigger value="delivery" className="rounded-xl font-bold text-xs sm:text-sm py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-red-600">
+                <Truck className="w-4 h-4 mr-1.5 shrink-0"/>Delivery
               </TabsTrigger>
-              <TabsTrigger value="takeaway" className="rounded-xl font-bold text-[11px] sm:text-xs py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-amber-700">
-                <Store className="w-3.5 h-3.5 mr-1.5 shrink-0"/>Retirada
+              <TabsTrigger value="takeaway" className="rounded-xl font-bold text-xs sm:text-sm py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-amber-700">
+                <Store className="w-4 h-4 mr-1.5 shrink-0"/>Retirada
               </TabsTrigger>
-              <TabsTrigger value="dine_in" className="rounded-xl font-bold text-[11px] sm:text-xs py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">
+              <TabsTrigger value="dine_in" className="rounded-xl font-bold text-xs sm:text-sm py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">
                 <span className="text-sm mr-1">🍽️</span>Na Mesa
               </TabsTrigger>
             </TabsList>
@@ -1073,16 +1073,22 @@ export default function OrderModal({
             </div>
           </div>
 
-          <div className="flex gap-2.5 pt-1">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" disabled={isSubmitting}>
+          <div className="sticky bottom-0 bg-white/98 backdrop-blur-md pt-3.5 pb-7 sm:pb-4 -mx-4 sm:-mx-6 px-4 sm:px-6 border-t border-stone-200 mt-3 z-20 flex gap-2.5 shadow-xl">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              className="flex-1 h-12 rounded-2xl text-sm font-bold active:scale-[0.98] transition-all cursor-pointer" 
+              disabled={isSubmitting}
+            >
               Voltar
             </Button>
             <Button
               type="submit"
-              className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm sm:text-base shadow-lg"
+              className="flex-2 h-12 rounded-2xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black text-sm sm:text-base shadow-lg shadow-red-600/30 active:scale-[0.98] transition-all cursor-pointer"
               disabled={isSubmitting || finalTotal < minOrderValue}
             >
-              {isSubmitting ? "Enviando..." : "Confirmar Pedido"}
+              {isSubmitting ? "Enviando..." : "Confirmar Pedido ➔"}
             </Button>
           </div>
         </form>
