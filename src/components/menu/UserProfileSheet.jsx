@@ -241,6 +241,101 @@ export default function UserProfileSheet() {
     }
   };
 
+  const [isLookingUpPhone, setIsLookingUpPhone] = useState(false);
+  const [foundNameMessage, setFoundNameMessage] = useState("");
+
+  const lookupCustomerNameByPhone = async (phoneStr) => {
+    if (!phoneStr) return;
+    const cleanDigits = phoneStr.replace(/\D/g, "");
+    if (cleanDigits.length < 10) {
+      setFoundNameMessage("");
+      return;
+    }
+
+    setIsLookingUpPhone(true);
+    try {
+      let resolvedName = "";
+
+      if (isSupabaseConfigured() && supabase) {
+        // 1. Tenta RPC do Supabase
+        try {
+          const { data, error } = await supabase.rpc("lookup_customer_by_phone", {
+            p_phone: phoneStr
+          });
+          if (!error && data && data.length > 0 && data[0].customer_name && data[0].customer_name !== "Cliente") {
+            resolvedName = data[0].customer_name;
+          }
+        } catch {}
+
+        // 2. Tenta tabela users diretamente
+        if (!resolvedName) {
+          try {
+            const { data: userData } = await supabase
+              .from("users")
+              .select("full_name")
+              .ilike("phone", `%${cleanDigits.slice(-8)}%`)
+              .limit(1);
+            if (userData && userData[0]?.full_name && userData[0].full_name !== "Cliente") {
+              resolvedName = userData[0].full_name;
+            }
+          } catch {}
+        }
+
+        // 3. Tenta tabela orders diretamente
+        if (!resolvedName) {
+          try {
+            const { data: orderData } = await supabase
+              .from("orders")
+              .select("customer_name")
+              .ilike("customer_phone", `%${cleanDigits.slice(-8)}%`)
+              .order("created_date", { ascending: false })
+              .limit(1);
+            if (orderData && orderData[0]?.customer_name && orderData[0].customer_name !== "Cliente") {
+              resolvedName = orderData[0].customer_name;
+            }
+          } catch {}
+        }
+      }
+
+      // 4. Fallback local em memória/localStorage
+      if (!resolvedName) {
+        try {
+          const allUsers = await User.list();
+          const localMatch = (allUsers || []).find(u => 
+            u.phone && u.phone.replace(/\D/g, "").slice(-8) === cleanDigits.slice(-8)
+          );
+          if (localMatch && localMatch.full_name && localMatch.full_name !== "Cliente") {
+            resolvedName = localMatch.full_name;
+          }
+        } catch {}
+      }
+
+      if (resolvedName) {
+        setNameInput(resolvedName);
+        setFoundNameMessage(`✓ Cadastro localizado: ${resolvedName}`);
+      } else {
+        setFoundNameMessage("");
+      }
+    } catch (_err) {
+      console.warn("Erro ao buscar nome pelo telefone:", _err);
+    } finally {
+      setIsLookingUpPhone(false);
+    }
+  };
+
+  const handlePhoneInputChange = (rawVal) => {
+    const formatted = formatPhone(rawVal);
+    setPhoneInput(formatted);
+    if (phoneError) setPhoneError("");
+
+    const clean = formatted.replace(/\D/g, "");
+    if (clean.length >= 10) {
+      lookupCustomerNameByPhone(formatted);
+    } else {
+      setFoundNameMessage("");
+    }
+  };
+
   const handlePhoneLogin = async (e) => {
     e.preventDefault();
     const clean = phoneInput.replace(/\D/g, "");
@@ -555,16 +650,20 @@ export default function UserProfileSheet() {
 
               <form onSubmit={handlePhoneLogin} className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-200">
                 <div>
-                  <Label htmlFor="phone" className="text-xs font-bold text-gray-700">Seu WhatsApp / Celular *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="phone" className="text-xs font-bold text-gray-700">Seu WhatsApp / Celular *</Label>
+                    {isLookingUpPhone && (
+                      <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 animate-pulse">
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando cadastro...
+                      </span>
+                    )}
+                  </div>
                   <Input
                     id="phone"
                     type="tel"
                     placeholder="(11) 99999-9999"
                     value={phoneInput}
-                    onChange={(e) => {
-                      setPhoneInput(formatPhone(e.target.value));
-                      if (phoneError) setPhoneError("");
-                    }}
+                    onChange={(e) => handlePhoneInputChange(e.target.value)}
                     className={`mt-1 bg-white font-medium ${phoneError ? 'border-red-500' : ''}`}
                     required
                   />
@@ -572,20 +671,33 @@ export default function UserProfileSheet() {
                 </div>
 
                 <div>
-                  <Label htmlFor="name" className="text-xs font-bold text-gray-700">Seu Nome (opcional)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="name" className="text-xs font-bold text-gray-700">Seu Nome</Label>
+                    {foundNameMessage && (
+                      <span className="text-[10px] text-emerald-600 font-bold animate-fade-in">
+                        {foundNameMessage}
+                      </span>
+                    )}
+                  </div>
                   <Input
                     id="name"
                     type="text"
                     placeholder="Ex: Carlos Silva"
                     value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    className="mt-1 bg-white"
+                    onChange={(e) => {
+                      setNameInput(e.target.value);
+                      if (foundNameMessage) setFoundNameMessage("");
+                    }}
+                    className={`mt-1 bg-white ${foundNameMessage ? 'border-emerald-500 ring-1 ring-emerald-400/30' : ''}`}
                   />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    {foundNameMessage ? "Preenchido automaticamente a partir do seu histórico." : "Se já comprou antes, o nome é preenchido automaticamente."}
+                  </p>
                 </div>
 
                 <Button
                   type="submit"
-                  disabled={isSubmittingPhone}
+                  disabled={isSubmittingPhone || isLookingUpPhone}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 rounded-xl shadow-md flex items-center justify-center gap-2 mt-2"
                 >
                   <PhoneCall className="w-4 h-4" />

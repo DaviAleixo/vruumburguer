@@ -385,20 +385,68 @@ export default function OrderModal({
     if (cleanDigits.length < 10) return;
 
     try {
-      if (isSupabaseConfigured() && supabase) {
-        const { data, error } = await supabase.rpc("lookup_customer_by_phone", {
-          p_phone: phoneStr
-        });
+      let foundName = "";
+      let foundEmail = "";
+      let foundAddress = "";
 
-        if (!error && data && data.length > 0) {
-          const client = data[0];
-          if (client.customer_name) {
-            setCustomerData(prev => ({
-              ...prev,
-              customer_name: (!prev.customer_name || prev.customer_name === "Cliente") ? client.customer_name : prev.customer_name,
-              customer_email: prev.customer_email ? prev.customer_email : (client.customer_email && !client.customer_email.includes("@cliente.vrumburguer.com") ? client.customer_email : prev.customer_email)
-            }));
+      if (isSupabaseConfigured() && supabase) {
+        // 1. Tenta RPC
+        try {
+          const { data, error } = await supabase.rpc("lookup_customer_by_phone", {
+            p_phone: phoneStr
+          });
+          if (!error && data && data.length > 0) {
+            const client = data[0];
+            if (client.customer_name && client.customer_name !== "Cliente") foundName = client.customer_name;
+            if (client.customer_email) foundEmail = client.customer_email;
+            if (client.delivery_address) foundAddress = client.delivery_address;
           }
+        } catch {}
+
+        // 2. Tenta tabela users diretamente
+        if (!foundName) {
+          try {
+            const { data: userData } = await supabase
+              .from("users")
+              .select("full_name,email")
+              .ilike("phone", `%${cleanDigits.slice(-8)}%`)
+              .limit(1);
+            if (userData && userData[0]?.full_name && userData[0].full_name !== "Cliente") {
+              foundName = userData[0].full_name;
+              if (userData[0].email) foundEmail = userData[0].email;
+            }
+          } catch {}
+        }
+
+        // 3. Tenta tabela orders diretamente
+        if (!foundName || !foundAddress) {
+          try {
+            const { data: orderData } = await supabase
+              .from("orders")
+              .select("customer_name,customer_email,delivery_address")
+              .ilike("customer_phone", `%${cleanDigits.slice(-8)}%`)
+              .order("created_date", { ascending: false })
+              .limit(1);
+            if (orderData && orderData[0]) {
+              if (!foundName && orderData[0].customer_name && orderData[0].customer_name !== "Cliente") {
+                foundName = orderData[0].customer_name;
+              }
+              if (!foundEmail && orderData[0].customer_email) {
+                foundEmail = orderData[0].customer_email;
+              }
+              if (!foundAddress && orderData[0].delivery_address) {
+                foundAddress = orderData[0].delivery_address;
+              }
+            }
+          } catch {}
+        }
+
+        if (foundName) {
+          setCustomerData(prev => ({
+            ...prev,
+            customer_name: (!prev.customer_name || prev.customer_name === "Cliente") ? foundName : prev.customer_name,
+            customer_email: prev.customer_email ? prev.customer_email : (foundEmail && !foundEmail.includes("@cliente.vrumburguer.com") ? foundEmail : prev.customer_email)
+          }));
         }
 
         // Buscar endereços salvos deste telefone
@@ -423,6 +471,8 @@ export default function OrderModal({
               cep: defaultAddr.cep || defaultAddr.zip_code || prev.cep,
             }));
           }
+        } else if (foundAddress && !manualAddress) {
+          setManualAddress(foundAddress);
         }
       }
     } catch (_err) {
