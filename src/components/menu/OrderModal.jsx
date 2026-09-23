@@ -57,6 +57,8 @@ export default function OrderModal({
     notes: ""
   });
   const [changeFor, setChangeFor] = useState("");
+  const [isSearchingPhone, setIsSearchingPhone] = useState(false);
+  const [phoneLookupFeedback, setPhoneLookupFeedback] = useState("");
   const [errors, setErrors] = useState({});
   const [user, setUser] = useState(null);
   const [couponCode, setCouponCode] = useState("");
@@ -385,11 +387,47 @@ export default function OrderModal({
     return `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7)}`;
   };
 
+  const parseAddressString = (addrStr) => {
+    if (!addrStr || typeof addrStr !== 'string') return null;
+    try {
+      const parts = addrStr.split(" - ");
+      const streetPart = parts[0] || "";
+      const remaining = parts.slice(1).join(" - ");
+
+      const match = streetPart.match(/^(.+?),\s*([0-9A-Za-z\s/ºª-]+?)(?:\s*\((.*?)\))?$/);
+      const street = match ? match[1].trim() : streetPart.trim();
+      const number = match ? match[2].trim() : "";
+      const complement = match && match[3] ? match[3].trim() : "";
+
+      let neighborhood = "";
+      let city = "";
+      let state = "MG";
+
+      if (remaining) {
+        const cityParts = remaining.split(",");
+        neighborhood = cityParts[0]?.trim() || "";
+        if (cityParts[1]) {
+          const cs = cityParts[1].split("/");
+          city = cs[0]?.trim() || "";
+          state = cs[1]?.trim() || "MG";
+        }
+      }
+
+      return { street, number, complement, neighborhood, city, state };
+    } catch {
+      return null;
+    }
+  };
+
   const lookupCustomerByPhone = async (phoneStr) => {
     if (!phoneStr) return;
     const cleanDigits = phoneStr.replace(/\D/g, "");
-    if (cleanDigits.length < 10) return;
+    if (cleanDigits.length < 10) {
+      setPhoneLookupFeedback("");
+      return;
+    }
 
+    setIsSearchingPhone(true);
     try {
       let foundName = "";
       let foundEmail = "";
@@ -424,12 +462,12 @@ export default function OrderModal({
           } catch {}
         }
 
-        // 3. Tenta tabela orders diretamente
+        // 3. Tenta tabela orders diretamente para pegar nome e endereço mais recente
         if (!foundName || !foundAddress) {
           try {
             const { data: orderData } = await supabase
               .from("orders")
-              .select("customer_name,customer_email,delivery_address")
+              .select("customer_name,customer_email,delivery_address,customer_address")
               .ilike("customer_phone", `%${cleanDigits.slice(-8)}%`)
               .order("created_date", { ascending: false })
               .limit(1);
@@ -440,13 +478,15 @@ export default function OrderModal({
               if (!foundEmail && orderData[0].customer_email) {
                 foundEmail = orderData[0].customer_email;
               }
-              if (!foundAddress && orderData[0].delivery_address) {
-                foundAddress = orderData[0].delivery_address;
+              const addr = orderData[0].delivery_address || orderData[0].customer_address;
+              if (!foundAddress && addr) {
+                foundAddress = addr;
               }
             }
           } catch {}
         }
 
+        // 4. Preenche o nome do cliente
         if (foundName) {
           setCustomerData(prev => ({
             ...prev,
@@ -455,15 +495,29 @@ export default function OrderModal({
           }));
         }
 
-        // Buscar endereços salvos deste telefone
-        const allAddrs = await UserAddress.list();
-        const phoneAddrs = (allAddrs || []).filter(a => 
-          a.user_phone && a.user_phone.replace(/\D/g, "") === cleanDigits
-        );
+        // 5. Buscar endereços cadastrados deste telefone
+        let phoneAddrs = [];
+        try {
+          const { data: dbAddrs } = await supabase
+            .from("user_addresses")
+            .select("*")
+            .ilike("user_phone", `%${cleanDigits.slice(-8)}%`);
+          if (dbAddrs && dbAddrs.length > 0) {
+            phoneAddrs = dbAddrs;
+          }
+        } catch {}
+
+        if (phoneAddrs.length === 0) {
+          const allAddrs = await UserAddress.list();
+          phoneAddrs = (allAddrs || []).filter(a => 
+            a.user_phone && a.user_phone.replace(/\D/g, "").slice(-8) === cleanDigits.slice(-8)
+          );
+        }
+
         if (phoneAddrs.length > 0) {
           setAddresses(phoneAddrs);
           const defaultAddr = phoneAddrs.find(a => a.is_default) || phoneAddrs[0];
-          if (defaultAddr && (!newAddressForm.street || newAddressForm.street === "")) {
+          if (defaultAddr) {
             setSelectedAddress(defaultAddr.id);
             setNewAddressForm(prev => ({
               ...prev,
@@ -476,13 +530,35 @@ export default function OrderModal({
               reference: defaultAddr.reference || prev.reference,
               cep: defaultAddr.cep || defaultAddr.zip_code || prev.cep,
             }));
+            const formatted = `${defaultAddr.street}, ${defaultAddr.number}${defaultAddr.complement ? ` (${defaultAddr.complement})` : ''} - ${defaultAddr.neighborhood}, ${defaultAddr.city}/${defaultAddr.state || 'MG'}`;
+            setManualAddress(formatted);
           }
-        } else if (foundAddress && !manualAddress) {
+        } else if (foundAddress) {
           setManualAddress(foundAddress);
+          const parsed = parseAddressString(foundAddress);
+          if (parsed && parsed.street) {
+            setNewAddressForm(prev => ({
+              ...prev,
+              street: parsed.street || prev.street,
+              number: parsed.number || prev.number,
+              neighborhood: parsed.neighborhood || prev.neighborhood,
+              city: parsed.city || prev.city,
+              state: parsed.state || prev.state,
+              complement: parsed.complement || prev.complement,
+            }));
+          }
+        }
+
+        if (foundName || foundAddress) {
+          setPhoneLookupFeedback(`✓ ${foundName ? foundName : "Cliente"} localizado!`);
+        } else {
+          setPhoneLookupFeedback("");
         }
       }
     } catch (_err) {
       console.warn("Erro ao buscar dados do cliente por telefone:", _err);
+    } finally {
+      setIsSearchingPhone(false);
     }
   };
 
@@ -495,6 +571,8 @@ export default function OrderModal({
       const digits = finalValue.replace(/\D/g, "");
       if (digits.length >= 10) {
         lookupCustomerByPhone(finalValue);
+      } else {
+        setPhoneLookupFeedback("");
       }
     }
   };
@@ -730,7 +808,7 @@ export default function OrderModal({
                   {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                 </div>
               ) : (
-                // Sem login ou sem endereços cadastrados: formulário direto
+                // Sem endereços salvos: formulário direto
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <Label className="text-xs font-bold uppercase text-gray-700">Endereço de entrega *</Label>
@@ -749,13 +827,6 @@ export default function OrderModal({
                     className={`rounded-xl text-sm ${errors.address ? "border-red-500" : ""}`}
                   />
                   {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
-                  
-                  <div className="flex items-center gap-2 mt-2 p-2.5 rounded-xl bg-blue-50 border border-blue-100">
-                    <LogIn className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                    <p className="text-xs text-blue-700">
-                      <button type="button" onClick={() => base44.auth.redirectToLogin()} className="font-semibold underline">Faça login</button> para salvar seus endereços e usar cupons.
-                    </p>
-                  </div>
                 </div>
               )}
             </TabsContent>
@@ -803,7 +874,32 @@ export default function OrderModal({
             </TabsContent>
           </Tabs>
 
-          <div className="space-y-3">
+          <div className="space-y-3 pt-1">
+            {/* 1º: WhatsApp / Celular */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs font-bold uppercase text-gray-700">WhatsApp / Celular *</Label>
+                {isSearchingPhone && (
+                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 animate-pulse">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando cadastro...
+                  </span>
+                )}
+                {phoneLookupFeedback && (
+                  <span className="text-[10px] text-emerald-600 font-bold">
+                    {phoneLookupFeedback}
+                  </span>
+                )}
+              </div>
+              <Input
+                value={customerData.customer_phone}
+                onChange={(e) => handleInputChange('customer_phone', e.target.value)}
+                placeholder="(11) 99999-9999"
+                className={`rounded-xl h-11 text-sm bg-white ${errors.customer_phone ? "border-red-500" : (phoneLookupFeedback ? "border-emerald-500 ring-1 ring-emerald-400/30" : "border-stone-300")}`}
+              />
+              {errors.customer_phone && <p className="text-red-500 text-xs mt-1">{errors.customer_phone}</p>}
+            </div>
+
+            {/* 2º: Nome Completo */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label className="text-xs font-bold uppercase text-gray-700">Nome completo *</Label>
@@ -841,16 +937,7 @@ export default function OrderModal({
               </div>
               {errors.customer_name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customer_name}</p>}
             </div>
-            <div>
-              <Label>WhatsApp *</Label>
-              <Input
-                value={customerData.customer_phone}
-                onChange={(e) => handleInputChange('customer_phone', e.target.value)}
-                placeholder="(11) 99999-9999"
-                className={errors.customer_phone ? "border-red-500" : ""}
-              />
-              {errors.customer_phone && <p className="text-red-500 text-xs mt-1">{errors.customer_phone}</p>}
-            </div>
+
             <div>
               <Label className="text-xs font-bold uppercase text-gray-700 mb-1.5 block">Forma de pagamento *</Label>
               <div className="grid grid-cols-3 gap-2">

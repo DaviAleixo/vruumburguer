@@ -219,10 +219,26 @@ export default function UserProfileSheet() {
           CouponUsage.list()
       ]);
 
-      const userAddresses = (allAddresses || []).filter(a => 
-        (userData.email && a.user_email === userData.email) || 
-        (userData.phone && a.user_phone === userData.phone)
-      );
+      const cleanPhone = (userData.phone || "").replace(/\D/g, "");
+      let userAddresses = (allAddresses || []).filter(a => {
+        const cleanAddrPhone = (a.user_phone || "").replace(/\D/g, "");
+        return (
+          (userData.email && a.user_email === userData.email) || 
+          (cleanPhone && cleanAddrPhone && cleanAddrPhone.slice(-8) === cleanPhone.slice(-8))
+        );
+      });
+
+      if (userAddresses.length === 0 && cleanPhone && isSupabaseConfigured() && supabase) {
+        try {
+          const { data: dbAddrs } = await supabase
+            .from("user_addresses")
+            .select("*")
+            .ilike("user_phone", `%${cleanPhone.slice(-8)}%`);
+          if (dbAddrs && dbAddrs.length > 0) {
+            userAddresses = dbAddrs;
+          }
+        } catch {}
+      }
       
       setAddresses(userAddresses);
       setCouponUsages(usages || []);
@@ -410,10 +426,15 @@ export default function UserProfileSheet() {
   };
 
   const handleSaveAddress = async (addressData) => {
+    const phoneToUse = user?.phone || localStorage.getItem("vrumburguer_customer_phone") || "";
     if (isEditingAddress && isEditingAddress.id) {
-      await UserAddress.update(isEditingAddress.id, addressData);
+      await UserAddress.update(isEditingAddress.id, { ...addressData, user_phone: phoneToUse });
     } else {
-      await UserAddress.create({ ...addressData, user_email: user.email });
+      await UserAddress.create({ 
+        ...addressData, 
+        user_email: user?.email,
+        user_phone: phoneToUse
+      });
     }
     setShowAddressForm(false);
     setIsEditingAddress(null);
