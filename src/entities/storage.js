@@ -397,7 +397,11 @@ export function createEntityModel(collectionKey, defaultData = []) {
 
     async create(data) {
       invalidateCache(collectionKey);
-      const newId = data.id || `${collectionKey}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      const isUuidTable = ["orders", "coupons", "coupon_usages", "users", "user_addresses", "settings", "admin_users"].includes(collectionKey);
+      const newId = data.id || (isUuidTable && typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" 
+        ? crypto.randomUUID() 
+        : `${collectionKey}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`);
+      
       const newItem = {
         id: newId,
         created_date: new Date().toISOString(),

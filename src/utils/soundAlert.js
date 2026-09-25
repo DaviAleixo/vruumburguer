@@ -1,10 +1,13 @@
-// Utilitário de alerta sonoro potente para novos pedidos usando Web Audio API (Multi-Harmônico de Alta Potência com Debounce Seguro)
+// Utilitário de alerta sonoro potente e contínuo para novos pedidos usando Web Audio API
 class SoundAlertManager {
   constructor() {
     this.audioCtx = null;
     this.enabled = typeof window !== "undefined" && localStorage.getItem("vrumburguer_order_sound_enabled") !== "false";
     this.isPlaying = false;
-    this.lastPlayTime = 0;
+    this.isLooping = false;
+    this.pendingCount = 0;
+    this.loopTimer = null;
+    this.activeTimeouts = [];
   }
 
   getAudioContext() {
@@ -34,24 +37,72 @@ class SoundAlertManager {
     if (typeof window !== "undefined") {
       localStorage.setItem("vrumburguer_order_sound_enabled", this.enabled ? "true" : "false");
     }
+    if (!this.enabled) {
+      this.stopContinuousAlert();
+    } else if (this.pendingCount > 0) {
+      this.startContinuousAlert();
+    }
   }
 
-  // Toca um alerta sonoro potente estilo iFood/Anota AI com proteção contra sobrecarga
-  playOrderChime() {
-    if (!this.enabled) return;
+  // Atualiza a contagem de pedidos pendentes
+  setPendingCount(count) {
+    this.pendingCount = Math.max(0, Number(count) || 0);
+    if (this.pendingCount > 0 && this.enabled) {
+      this.startContinuousAlert();
+    } else {
+      this.stopContinuousAlert();
+    }
+  }
 
-    // Proteção de debounce: não toca se tocou há menos de 3.5 segundos
-    const now = Date.now();
-    if (this.isPlaying || (now - this.lastPlayTime < 3500)) {
+  startContinuousAlert() {
+    if (this.isLooping || !this.enabled) return;
+    this.isLooping = true;
+    this.playLoop();
+  }
+
+  stopContinuousAlert() {
+    this.isLooping = false;
+    if (this.loopTimer) {
+      clearTimeout(this.loopTimer);
+      this.loopTimer = null;
+    }
+    this.activeTimeouts.forEach(t => clearTimeout(t));
+    this.activeTimeouts = [];
+    this.isPlaying = false;
+  }
+
+  playLoop() {
+    if (!this.isLooping || !this.enabled || this.pendingCount <= 0) {
+      this.stopContinuousAlert();
+      return;
+    }
+
+    this.playOrderChime(() => {
+      if (this.isLooping && this.enabled && this.pendingCount > 0) {
+        this.loopTimer = setTimeout(() => {
+          this.playLoop();
+        }, 1500); // 1.5s entre cada sequência de campainha
+      } else {
+        this.stopContinuousAlert();
+      }
+    });
+  }
+
+  // Toca um alerta sonoro potente estilo iFood/Anota AI
+  playOrderChime(onFinish) {
+    if (!this.enabled) {
+      if (onFinish) onFinish();
       return;
     }
 
     try {
       const ctx = this.getAudioContext();
-      if (!ctx) return;
+      if (!ctx) {
+        if (onFinish) onFinish();
+        return;
+      }
 
       this.isPlaying = true;
-      this.lastPlayTime = now;
 
       // Compressor dinâmico para maximizar o volume com segurança
       const compressor = ctx.createDynamicsCompressor();
@@ -63,7 +114,7 @@ class SoundAlertManager {
       compressor.connect(ctx.destination);
 
       // Função auxiliar para tocar um sino harmônico duplo
-      const playBell = (freq, startTime, duration = 0.6, volume = 0.8) => {
+      const playBell = (freq, startTime, duration = 0.5, volume = 0.85) => {
         try {
           const osc1 = ctx.createOscillator();
           const gain1 = ctx.createGain();
@@ -98,41 +149,40 @@ class SoundAlertManager {
 
       const startBase = ctx.currentTime + 0.05;
 
-      // Sequência de 3 toques cristalinos
-      playBell(587.33, startBase + 0.00, 0.45, 0.75); // Ré5
-      playBell(783.99, startBase + 0.18, 0.50, 0.85); // Sol5
-      playBell(1046.50, startBase + 0.38, 0.80, 0.95); // Dó6
+      // Sequência de toques cristalinos estilo iFood/Anota AI
+      playBell(587.33, startBase + 0.00, 0.45, 0.80); // Ré5
+      playBell(783.99, startBase + 0.18, 0.50, 0.90); // Sol5
+      playBell(1046.50, startBase + 0.38, 0.80, 1.00); // Dó6
 
-      setTimeout(() => {
-        if (!this.enabled || !this.audioCtx) {
-          this.isPlaying = false;
-          return;
-        }
+      const t1 = setTimeout(() => {
+        if (!this.enabled || !this.audioCtx) return;
         const now2 = this.audioCtx.currentTime;
-        playBell(880.00, now2 + 0.00, 0.45, 0.80);
-        playBell(1174.66, now2 + 0.18, 0.50, 0.90);
+        playBell(880.00, now2 + 0.00, 0.45, 0.85);
+        playBell(1174.66, now2 + 0.18, 0.50, 0.95);
         playBell(1567.98, now2 + 0.38, 0.95, 1.00);
       }, 700);
+      this.activeTimeouts.push(t1);
 
-      setTimeout(() => {
-        if (!this.enabled || !this.audioCtx) {
-          this.isPlaying = false;
-          return;
-        }
+      const t2 = setTimeout(() => {
+        if (!this.enabled || !this.audioCtx) return;
         const now3 = this.audioCtx.currentTime;
-        playBell(1046.50, now3 + 0.00, 0.40, 0.85);
-        playBell(1318.51, now3 + 0.16, 0.45, 0.90);
-        playBell(1567.98, now3 + 0.32, 0.55, 0.95);
+        playBell(1046.50, now3 + 0.00, 0.40, 0.90);
+        playBell(1318.51, now3 + 0.16, 0.45, 0.95);
+        playBell(1567.98, now3 + 0.32, 0.55, 1.00);
         playBell(2093.00, now3 + 0.48, 1.10, 1.00);
         
-        setTimeout(() => {
+        const t3 = setTimeout(() => {
           this.isPlaying = false;
+          if (onFinish) onFinish();
         }, 1200);
+        this.activeTimeouts.push(t3);
       }, 1500);
+      this.activeTimeouts.push(t2);
 
     } catch (err) {
       this.isPlaying = false;
       console.log("Aviso ao tocar som de notificação:", err);
+      if (onFinish) onFinish();
     }
   }
 }

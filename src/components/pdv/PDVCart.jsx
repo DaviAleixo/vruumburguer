@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Trash2, Plus, Minus, ShoppingCart, CheckCircle, Printer, X, Users, Phone, User, Sparkles } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, CheckCircle, Printer, X, Users, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

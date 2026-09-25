@@ -10,6 +10,7 @@ import { CouponUsage } from "@/entities/CouponUsage";
 import { ComplementGroup } from "@/entities/ComplementGroup";
 import { ComplementItem } from "@/entities/ComplementItem";
 import { ProductComplementGroup } from "@/entities/ProductComplementGroup";
+import { User } from "@/entities/User";
 import { base44 } from "@/api/base44Client";
 import { AnimatePresence, motion } from "framer-motion";
 import ProductCard from "../components/menu/ProductCard";
@@ -99,14 +100,12 @@ export default function MenuPage() {
       const user = await base44.auth.me();
 
       if (user?.email) {
-        // Se estiver logado em uma conta, mostra APENAS os pedidos pertencentes a essa conta
         const allOrders = await Order.list("-created_date", 10);
         const active = allOrders.find(o => o.user_email === user.email && ['pendente', 'confirmado', 'preparando', 'enviado'].includes(o.status));
         setActiveGuestOrder(active || null);
         return;
       }
 
-      // Se não estiver logado (visitante novo ou após logout), verifica somente pedidos feitos na sessão anônima
       const recentIds = JSON.parse(localStorage.getItem("vrumburguer_recent_orders") || "[]");
       if (!Array.isArray(recentIds) || recentIds.length === 0) {
         setActiveGuestOrder(null);
@@ -114,7 +113,6 @@ export default function MenuPage() {
       }
 
       const allOrders = await Order.list("-created_date", 10);
-      // Garante que o pedido é anônimo (sem user_email de outra conta) e bate com o ID da sessão
       const active = allOrders.find(o => recentIds.includes(o.id) && !o.user_email && ['pendente', 'confirmado', 'preparando', 'enviado'].includes(o.status));
       setActiveGuestOrder(active || null);
     } catch (_err) {
@@ -125,7 +123,6 @@ export default function MenuPage() {
 
   const loadData = async () => {
     try {
-      // Carregamento otimizado com cache inteligente (0ms nos re-acessos)
       const [productsData, additionalsData, settingsData, bannerData, categoryData, groupsData, itemsData, pcgData] = await Promise.all([
         Product.filter({ available: true }, "-created_date"),
         ProductAdditional.list(),
@@ -149,7 +146,7 @@ export default function MenuPage() {
       setBanners(bannerData || []);
       setCategories(categoryData || []);
       
-      if (categoryData.length > 0) {
+      if (categoryData.length > 0 && !activeCategory) {
         setActiveCategory(categoryData[0].id);
       }
     } catch (_error) {
@@ -157,7 +154,6 @@ export default function MenuPage() {
     }
   };
 
-  // Pega os 7 produtos mais populares com máxima performance (sem query pesada)
   const popularRankedProducts = React.useMemo(() => {
     if (!products || products.length === 0) return [];
 
@@ -219,7 +215,7 @@ export default function MenuPage() {
 
   const getCartTotal = () => {
     return cart.reduce((total, item) => {
-      const additionalsTotal = item.additionals.reduce((sum, ad) => sum + ad.price, 0);
+      const additionalsTotal = (item.additionals || []).reduce((sum, ad) => sum + ad.price, 0);
       return total + (item.price + additionalsTotal) * item.quantity;
     }, 0);
   };
@@ -242,7 +238,7 @@ export default function MenuPage() {
 
   const handleCheckout = () => {
     if (!storeIsOpen) {
-      alert("Desculpe, o restaurante está fechado no momento.");
+      alert("Desculpe, o restaurante está fechado no momento para novos pedidos.");
       return;
     }
     setShowOrderModal(true);
@@ -261,18 +257,26 @@ export default function MenuPage() {
         }
         if (orderData.customer_phone) {
           localStorage.setItem("vrumburguer_customer_phone", orderData.customer_phone);
+          if (orderData.customer_name && orderData.customer_name.trim() !== "Cliente") {
+            await User.loginWithPhone(orderData.customer_phone, orderData.customer_name.trim());
+          }
         }
       } catch {}
 
       if (orderData.coupon_code) {
         try {
-          const user = await base44.auth.me();
-          const coupons = await Coupon.filter({ code: orderData.coupon_code });
+          const cleanPhone = (orderData.customer_phone || "").replace(/\D/g, "");
+          const coupons = await Coupon.filter({ code: orderData.coupon_code.toUpperCase(), active: true });
+          const targetCoupon = coupons[0];
           
-          if (coupons.length > 0 && user?.email) {
+          if (targetCoupon && (cleanPhone || orderData.customer_email)) {
+            const userIdentifier = orderData.customer_email 
+              ? `${orderData.customer_email} [phone:${cleanPhone}]` 
+              : `phone:${cleanPhone}`;
+
             await CouponUsage.create({
-              coupon_id: coupons[0].id,
-              user_email: user.email,
+              coupon_id: targetCoupon.id,
+              user_email: userIdentifier,
               order_id: createdOrder.id
             });
           }
@@ -301,32 +305,35 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-[#0d0a09] text-stone-100 selection:bg-red-600 selection:text-white">
-      {/* Header Dark Glass */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-[#120e0d]/95 backdrop-blur-xl border-b border-stone-800/80 transition-all">
-        <div className="container mx-auto px-4 sm:px-6 py-3 max-w-6xl">
+      {/* Header Dark Glass Moderno */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-[#120e0d]/90 backdrop-blur-xl border-b border-stone-800/80 transition-all">
+        <div className="container mx-auto px-4 sm:px-6 py-2.5 max-w-6xl">
           <div className="flex items-center justify-between">
             {/* Logo e Nome */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden shadow-lg border border-red-500/30 flex-shrink-0 bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden shadow-lg border border-red-500/30 flex-shrink-0 bg-gradient-to-br from-red-600 via-red-700 to-amber-700 flex items-center justify-center"
+              >
                 {settings?.restaurant_logo ? (
                   <img src={settings.restaurant_logo} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-xl">🍔</span>
                 )}
-              </div>
+              </motion.div>
               <div>
                 <h1 className="text-base sm:text-lg font-black leading-tight text-white tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {settings?.restaurant_name || "Vruum Burguer"}
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className="flex items-center gap-1.5">
-                    <div className={`w-2 h-2 rounded-full ${storeIsOpen ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></div>
-                    <span className={`text-[11px] font-bold tracking-wide ${storeIsOpen ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <div className={`w-2 h-2 rounded-full ${storeIsOpen ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50' : 'bg-red-500'}`}></div>
+                    <span className={`text-[11px] font-extrabold tracking-wide ${storeIsOpen ? 'text-emerald-400' : 'text-red-400'}`}>
                       {storeIsOpen ? 'Aberto agora' : 'Fechado'}
                     </span>
                   </div>
                   <span className="text-stone-600 text-xs">•</span>
-                  <span className="text-stone-400 text-[11px]">
+                  <span className="text-stone-400 text-[11px] font-medium">
                     {settings?.opening_time && settings?.closing_time ? `${settings.opening_time} - ${settings.closing_time}` : '18:00 - 23:59'}
                   </span>
                 </div>
@@ -335,20 +342,27 @@ export default function MenuPage() {
 
             {/* Ações Topo */}
             <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCartToggle}
-                title="Carrinho"
-                className="relative text-stone-300 hover:text-white hover:bg-stone-800/80 rounded-full h-9 w-9 cursor-pointer"
-              >
-                <ShoppingBag className="w-4 h-4 text-red-400" />
-                {cart.reduce((total, item) => total + item.quantity, 0) > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow-md animate-in zoom-in-50 duration-150">
-                    {cart.reduce((total, item) => total + item.quantity, 0)}
-                  </span>
-                )}
-              </Button>
+              <motion.div whileTap={{ scale: 0.9 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCartToggle}
+                  title="Carrinho"
+                  className="relative text-stone-300 hover:text-white hover:bg-stone-800/80 rounded-full h-9 w-9 cursor-pointer"
+                >
+                  <ShoppingBag className="w-4 h-4 text-red-400" />
+                  {cart.reduce((total, item) => total + item.quantity, 0) > 0 && (
+                    <motion.span 
+                      key={cart.reduce((total, item) => total + item.quantity, 0)}
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 min-w-4 min-h-4 flex items-center justify-center shadow-sm border border-[#120e0d] leading-none"
+                    >
+                      {cart.reduce((total, item) => total + item.quantity, 0)}
+                    </motion.span>
+                  )}
+                </Button>
+              </motion.div>
               <StoreInfoSheet settings={settings} />
               <UserProfileSheet />
             </div>
@@ -374,7 +388,7 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* Banner de Pedido em Andamento (se houver) */}
+      {/* Banner de Pedido em Andamento */}
       {activeGuestOrder && (
         <div className={`${urlMesa ? 'pt-3' : 'pt-20'} container mx-auto px-4 max-w-6xl`}>
           <div className="relative">
@@ -425,31 +439,31 @@ export default function MenuPage() {
 
       {!storeIsOpen && (
         <div className={`${activeGuestOrder ? 'pt-3' : 'pt-20'} container mx-auto px-4 max-w-6xl`}>
-          <div className="rounded-2xl border p-4 bg-red-950/40 border-red-500/30 text-red-200 flex items-start gap-3">
+          <div className="rounded-2xl border p-4 bg-red-950/40 border-red-500/30 text-red-200 flex items-start gap-3 shadow-lg">
             <XCircle className="h-5 w-5 mt-0.5 text-red-400 flex-shrink-0" />
             <div>
               <p className="font-bold text-sm text-white">Restaurante Fechado no Momento</p>
               <p className="text-xs mt-0.5 text-stone-300">
-                Horário de funcionamento: {settings?.opening_time || '18:00'} às {settings?.closing_time || '23:59'}
+                Horário de funcionamento: {settings?.opening_time || '18:00'} às {settings?.closing_time || '23:59'}. Você pode explorar o cardápio e montar seu pedido à vontade!
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Banner (só exibe se houver banners cadastrados e ativos) */}
+      {/* Banners Carrossel */}
       {banners && banners.length > 0 ? (
-        <div className={!activeGuestOrder && storeIsOpen ? "pt-[61px]" : "pt-2"}>
+        <div className={!activeGuestOrder && storeIsOpen ? "pt-[60px]" : "pt-2"}>
           <BannerCarousel banners={banners} />
         </div>
       ) : (
-        !activeGuestOrder && storeIsOpen && <div className="h-[61px]" />
+        !activeGuestOrder && storeIsOpen && <div className="h-[60px]" />
       )}
 
-      {/* Barra de Categorias Pills */}
-      <div className="sticky top-[61px] z-30 bg-[#0d0a09]/95 backdrop-blur-xl border-b border-stone-800/80 py-3.5">
+      {/* Barra de Categorias Pills com layoutId Framer Motion */}
+      <div className="sticky top-[58px] z-30 bg-[#0d0a09]/95 backdrop-blur-xl border-b border-stone-800/80 py-3">
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide py-1">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1">
             {categories.map(category => {
               const isActive = activeCategory === category.id;
 
@@ -460,13 +474,18 @@ export default function MenuPage() {
                     setActiveCategory(category.id);
                     setSearchQuery("");
                   }}
-                  className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-950/60 border border-red-500/40 scale-[1.02]' 
-                      : 'bg-stone-900/80 text-stone-300 hover:text-white hover:bg-stone-800 border border-stone-800/80'
+                  className={`relative whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-2xl text-xs sm:text-sm font-extrabold transition-colors duration-200 cursor-pointer ${
+                    isActive ? 'text-white' : 'text-stone-400 hover:text-stone-200 bg-stone-900/80 border border-stone-800/80'
                   }`}
                 >
-                  <span>{category.name}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeCategoryPill"
+                      className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-700 rounded-2xl shadow-lg shadow-red-950/60 border border-red-500/40"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">{category.name}</span>
                 </button>
               );
             })}
@@ -475,8 +494,8 @@ export default function MenuPage() {
       </div>
 
       {/* Seção Principal do Cardápio */}
-      <main className="container mx-auto px-4 sm:px-6 pb-36 pt-8 max-w-6xl space-y-10">
-        {/* Carrossel dos 7 Mais Pedidos (Baseado em Pedidos Reais) */}
+      <main className="container mx-auto px-4 sm:px-6 pb-36 pt-6 max-w-6xl space-y-9">
+        {/* Carrossel dos Mais Pedidos */}
         {!searchQuery.trim() && (
           <PopularProductsRow
             products={popularRankedProducts}
@@ -486,7 +505,7 @@ export default function MenuPage() {
         )}
 
         {/* Cabeçalho da Categoria com Barra de Busca Global */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-stone-800/80 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3 border-b border-stone-800/80 pt-1">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-black tracking-widest text-red-500 uppercase">
               <Sparkles className="w-3.5 h-3.5" />
@@ -498,12 +517,12 @@ export default function MenuPage() {
             <p className="text-xs sm:text-sm text-stone-400 mt-0.5">
               {isSearching 
                 ? `${filteredProducts.length} ${filteredProducts.length === 1 ? 'produto encontrado' : 'produtos encontrados'}`
-                : "Feitos artesanalmente com ingredientes nobres e muito sabor."
+                : (activeCategoryObj?.description || "Feitos artesanalmente com ingredientes nobres e muito sabor.")
               }
             </p>
           </div>
 
-          {/* Campo de Busca Rápida com Botão de Limpar */}
+          {/* Campo de Busca */}
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
@@ -511,13 +530,13 @@ export default function MenuPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar burgers, bebidas, combos..."
-              className="w-full bg-stone-900/90 border border-stone-800 focus:border-red-500/70 focus:bg-stone-900 rounded-full pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-stone-500 outline-none transition-all shadow-inner"
+              className="w-full bg-stone-900/90 border border-stone-800 focus:border-red-500/70 focus:bg-stone-900 rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-stone-500 outline-none transition-all shadow-inner"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-1 rounded-full text-xs font-bold"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-1 rounded-full text-xs font-bold cursor-pointer"
                 aria-label="Limpar busca"
               >
                 ✕
@@ -526,7 +545,7 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* Grid de Produtos: 1 Coluna no Mobile e 2 no Desktop */}
+        {/* Grid de Produtos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
           <AnimatePresence>
             {filteredProducts.map((product, idx) => (
@@ -552,7 +571,7 @@ export default function MenuPage() {
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-red-400 hover:text-red-300 bg-red-950/40 border border-red-500/30 px-4 py-2 rounded-full transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-red-400 hover:text-red-300 bg-red-950/40 border border-red-500/30 px-4 py-2 rounded-full transition-colors cursor-pointer"
               >
                 Limpar busca
               </button>
@@ -560,85 +579,80 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* Banner Promocional de Combos - Visual Ultra Premium */}
+        {/* Banner Promocional de Combos - Visual Dark Clean */}
         {comboCategory && (
-          <div 
-            className="rounded-3xl overflow-hidden relative border border-amber-500/30 shadow-2xl p-6 sm:p-8 transition-all hover:border-amber-400/50"
-            style={{
-              background: 'radial-gradient(circle at 85% 50%, rgba(220, 38, 38, 0.22), transparent 55%), linear-gradient(135deg, #1c0e0b 0%, #2b130e 50%, #120907 100%)',
-              boxShadow: '0 20px 50px -15px rgba(220, 38, 38, 0.25), 0 0 30px rgba(245, 158, 11, 0.08)'
-            }}
+          <motion.div 
+            whileHover={{ y: -2 }}
+            className="rounded-3xl overflow-hidden relative border border-stone-800 bg-[#14100e] p-6 sm:p-8 shadow-xl"
           >
-            {/* Brilho sutil de fundo */}
-            <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-red-600/10 blur-3xl pointer-events-none" />
-
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-              <div className="space-y-3.5 text-left flex-1">
-                <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-red-500/20 to-transparent border border-amber-500/40 text-amber-300 text-[11px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full shadow-sm">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span>COMBO PROMOCIONAL EXCLUSIVO</span>
+              <div className="space-y-2.5 text-left flex-1">
+                <div className="inline-flex items-center gap-1.5 text-red-400 text-xs font-black uppercase tracking-widest">
+                  <Sparkles className="w-3.5 h-3.5 text-red-500" />
+                  <span>SELEÇÃO ESPECIAL</span>
                 </div>
                 
                 <h3 
-                  className="text-2xl sm:text-3xl font-black text-white leading-tight tracking-tight" 
+                  className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight" 
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
-                  Conheça a nossa seleção de <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-amber-500">{comboCategory.name}</span>
+                  Conheça nossos <span className="text-red-500">{comboCategory.name}</span>
                 </h3>
                 
-                <p className="text-xs sm:text-sm text-stone-300 max-w-lg leading-relaxed font-normal">
-                  Burgers artesanais suculentos acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
+                <p className="text-xs sm:text-sm text-stone-400 max-w-lg leading-relaxed font-normal">
+                  Burgers artesanais acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
                 </p>
               </div>
 
               <div className="flex-shrink-0 w-full sm:w-auto">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => {
                     setActiveCategory(comboCategory.id);
                     setSearchQuery("");
                     window.scrollTo({ top: 180, behavior: 'smooth' });
                   }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-xs sm:text-sm px-6 py-4 rounded-2xl shadow-xl shadow-red-950/70 hover:shadow-red-600/30 transition-all duration-200 active:scale-95 cursor-pointer border border-amber-400/30 whitespace-nowrap"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-lg transition-all duration-200 cursor-pointer whitespace-nowrap"
                 >
-                  <span>Explorar {comboCategory.name}</span>
+                  <span>Explorar Combos</span>
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </motion.button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* 3 Cards de Diferenciais / Trust */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-stone-900/70 border border-stone-800/80 rounded-2xl p-4 flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-red-950/70 border border-red-500/30 flex items-center justify-center flex-shrink-0 text-red-400">
-              <Bike className="w-5 h-5" />
+        {/* 3 Cards de Diferenciais / Trust - Clean Minimalista */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+          <div className="bg-[#14100e] border border-stone-800/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center flex-shrink-0 text-stone-300">
+              <Bike className="w-5 h-5 text-red-500" />
             </div>
             <div>
               <p className="font-bold text-sm text-white">Entrega Rápida</p>
-              <p className="text-xs text-stone-400 mt-0.5">Seu burger no menor tempo possível</p>
+              <p className="text-xs text-stone-400 mt-0.5">Seu burger quentinho no menor tempo</p>
             </div>
           </div>
 
-          <div className="bg-stone-900/70 border border-stone-800/80 rounded-2xl p-4 flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-950/70 border border-amber-500/30 flex items-center justify-center flex-shrink-0 text-amber-400">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="bg-[#14100e] border border-stone-800/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center flex-shrink-0 text-stone-300">
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <p className="font-bold text-sm text-white">Pagamento Seguro</p>
-              <p className="text-xs text-stone-400 mt-0.5">Pix, cartão e dinheiro na entrega</p>
+              <p className="text-xs text-stone-400 mt-0.5">Pix automático, cartão e dinheiro</p>
             </div>
           </div>
 
-          <div className="bg-stone-900/70 border border-stone-800/80 rounded-2xl p-4 flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-red-950/70 border border-red-500/30 flex items-center justify-center flex-shrink-0 text-red-400">
-              <Star className="w-5 h-5 fill-red-400" />
+          <div className="bg-[#14100e] border border-stone-800/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center flex-shrink-0 text-stone-300">
+              <Star className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <p className="font-bold text-sm text-white">Qualidade Garantida</p>
-              <p className="text-xs text-stone-400 mt-0.5">Sabor e satisfação em 1º lugar</p>
+              <p className="font-bold text-sm text-white">Qualidade Artesanal</p>
+              <p className="text-xs text-stone-400 mt-0.5">Ingredientes frescos e selecionados</p>
             </div>
           </div>
         </div>
@@ -656,17 +670,17 @@ export default function MenuPage() {
                   <span className="text-xl">🍔</span>
                 )}
               </div>
-              <h4 className="font-extrabold text-base text-white tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+              <h4 className="font-black text-base text-white tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                 {settings?.restaurant_name || "Vruum Burguer"}
               </h4>
             </div>
-            <p className="text-xs text-stone-400 leading-relaxed max-w-xs">
+            <p className="text-xs text-stone-400 leading-relaxed max-w-xs font-normal">
               Burgers artesanais preparados com ingredientes nobres e muito amor por hambúrguer de verdade.
             </p>
           </div>
 
           <div className="md:col-span-4 space-y-2.5 text-xs text-stone-300">
-            <p className="font-bold uppercase tracking-wider text-stone-500 text-[11px]">Localização & Contato</p>
+            <p className="font-black uppercase tracking-wider text-stone-500 text-[11px]">Localização & Contato</p>
             <div className="flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
               <span>{settings?.address || "Endereço não informado"}</span>
@@ -702,9 +716,9 @@ export default function MenuPage() {
           </div>
 
           <div className="md:col-span-4 space-y-2.5 text-xs text-stone-300">
-            <p className="font-bold uppercase tracking-wider text-stone-500 text-[11px]">Horário de Funcionamento</p>
+            <p className="font-black uppercase tracking-wider text-stone-500 text-[11px]">Horário de Funcionamento</p>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${storeIsOpen ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              <div className={`w-2 h-2 rounded-full ${storeIsOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
               <span className={storeIsOpen ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
                 {storeIsOpen ? 'Aberto Agora' : 'Fechado'}
               </span>

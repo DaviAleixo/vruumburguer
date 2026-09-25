@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, User, Phone, ShoppingBag, X, Loader2, Check } from "lucide-react";
+import { Search, User, Phone, X, Loader2 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { User as UserEntity } from "@/entities/User";
 import { Order } from "@/entities/Order";

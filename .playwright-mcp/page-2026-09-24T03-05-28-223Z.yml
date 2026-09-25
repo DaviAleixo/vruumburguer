@@ -1,0 +1,58 @@
+- generic [ref=f1e5]:
+  - banner [ref=f1e6]:
+    - generic [ref=f1e8]:
+      - generic [ref=f1e9]:
+        - generic [ref=f1e10]: 🍔
+        - generic [ref=f1e12]:
+          - heading "Vruum Burguer" [level=1] [ref=f1e13]
+          - generic [ref=f1e14]:
+            - generic [ref=f1e15]: Aberto agora
+            - generic [ref=f1e18]: •
+            - generic [ref=f1e19]: 18:00 - 23:59
+      - generic [ref=f1e20]:
+        - button "Carrinho" [ref=f1e22] [cursor=pointer]
+        - button [ref=f1e23] [cursor=pointer]
+  - main [ref=f1e28]:
+    - generic [ref=f1e29]:
+      - generic [ref=f1e30]:
+        - generic [ref=f1e31]: NOSSO CARDÁPIO
+        - heading "Todos os Produtos" [level=2] [ref=f1e35]
+        - paragraph [ref=f1e36]: Feitos artesanalmente com ingredientes nobres e muito sabor.
+      - textbox "Buscar burgers, bebidas, combos..." [ref=f1e38]
+    - generic [ref=f1e39]:
+      - generic [ref=f1e40]: 🍔
+      - heading "Nenhum produto encontrado" [level=3] [ref=f1e41]
+      - paragraph [ref=f1e42]: Não há produtos disponíveis nesta categoria no momento.
+    - generic [ref=f1e43]:
+      - generic [ref=f1e51]:
+        - paragraph [ref=f1e52]: Entrega Rápida
+        - paragraph [ref=f1e53]: Seu burger quentinho no menor tempo
+      - generic [ref=f1e59]:
+        - paragraph [ref=f1e60]: Pagamento Seguro
+        - paragraph [ref=f1e61]: Pix automático, cartão e dinheiro
+      - generic [ref=f1e66]:
+        - paragraph [ref=f1e67]: Qualidade Artesanal
+        - paragraph [ref=f1e68]: Ingredientes frescos e selecionados
+  - contentinfo [ref=f1e69]:
+    - generic [ref=f1e70]:
+      - generic [ref=f1e71]:
+        - generic [ref=f1e72]:
+          - generic [ref=f1e73]: 🍔
+          - heading "Vruum Burguer" [level=4] [ref=f1e75]
+        - paragraph [ref=f1e76]: Burgers artesanais preparados com ingredientes nobres e muito amor por hambúrguer de verdade.
+      - generic [ref=f1e77]:
+        - paragraph [ref=f1e78]: Localização & Contato
+        - generic [ref=f1e79]: Endereço não informado
+      - generic [ref=f1e84]:
+        - paragraph [ref=f1e85]: Horário de Funcionamento
+        - generic [ref=f1e86]: Aberto Agora
+        - paragraph [ref=f1e89]: Consulte nosso horário
+    - generic [ref=f1e90]:
+      - paragraph [ref=f1e91]: © 2026 Vruum Burguer. Todos os direitos reservados.
+      - paragraph [ref=f1e92]:
+        - text: Desenvolvido por
+        - link "Davi Aleixo" [ref=f1e93] [cursor=pointer]:
+          - /url: https://instagram.com/davialeixo_nogueira
+        - text: "|"
+        - link "31982607426" [ref=f1e94] [cursor=pointer]:
+          - /url: https://wa.me/5531982607426

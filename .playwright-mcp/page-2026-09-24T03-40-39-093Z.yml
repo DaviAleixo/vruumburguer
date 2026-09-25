@@ -1,0 +1,293 @@
+- generic:
+  - generic [aria-hidden]:
+    - generic:
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=1]: Vruum Burguer
+                    - generic:
+                      - generic: Aberto agora
+                      - generic: •
+                      - generic: 18:00 - 23:59
+                - generic:
+                  - generic:
+                    - button
+                  - button
+                  - button
+          - generic:
+            - generic:
+              - generic:
+                - button: Burgers Artesanais
+                - button: Combos Especiais
+                - button: Porções & Acompanhamentos
+                - button: Bebidas
+                - button: Sobremesas
+          - main:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=2]:
+                    - generic: Mais Pedidos
+                    - generic: Top 7
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: "#1"
+                    - generic:
+                      - heading [level=3]: Combo Smash Duplo Família (2 Burgers + 2 Fritas)
+                      - generic: R$ 79,90
+                - generic:
+                  - generic:
+                    - generic: "#2"
+                    - generic:
+                      - heading [level=3]: Combo Vrum Classic + Fritas + Refri
+                      - generic: R$ 48,90
+                - generic:
+                  - generic:
+                    - generic: "#3"
+                    - generic:
+                      - heading [level=3]: Vrum Bacon Monster
+                      - generic: R$ 44,90
+                - generic:
+                  - generic:
+                    - generic: "#4"
+                    - generic:
+                      - heading [level=3]: Vrum Classic Burger
+                      - generic: R$ 34,90
+                - generic:
+                  - generic:
+                    - generic: "#5"
+                    - generic:
+                      - heading [level=3]: Vrum Crispy Chicken
+                      - generic: R$ 32,90
+                - generic:
+                  - generic:
+                    - generic: "#6"
+                    - generic:
+                      - heading [level=3]: Vrum Smash Duplo
+                      - generic: R$ 29,90
+                - generic:
+                  - generic:
+                    - generic: "#7"
+                    - generic:
+                      - heading [level=3]: Onion Rings Empanadas
+                      - generic: R$ 24,90
+            - generic:
+              - generic:
+                - generic: NOSSO CARDÁPIO
+                - heading [level=2]: Burgers Artesanais
+                - paragraph: Feitos artesanalmente com ingredientes nobres e muito sabor.
+              - generic:
+                - textbox:
+                  - /placeholder: Buscar burgers, bebidas, combos...
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Classic Burger
+                        - generic: Top
+                      - paragraph: Pão brioche selado na manteiga, blend artesanal 180g, queijo cheddar derretido, cebola caramelizada e maionese especial da casa.
+                    - generic: R$ 34,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Bacon Monster
+                      - paragraph: Pão brioche, 2x blends artesanais 160g, fatias generosas de bacon crocante, cheddar duplo, picles e molho barbecue rústico.
+                    - generic: R$ 44,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Smash Duplo
+                      - paragraph: Pão de batata macio, 2x ultra smash 90g com crostinha perfeita, queijo prato duplo e molho especial.
+                    - generic: R$ 29,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Crispy Chicken
+                      - paragraph: Pão brioche, sobrecoxa empanada crocante temperada com especiarias, alface americana fresca, tomate e maionese de alho confit.
+                    - generic: R$ 32,90
+                  - generic:
+                    - button
+            - generic:
+              - generic:
+                - generic:
+                  - generic: SELEÇÃO ESPECIAL
+                  - heading [level=3]: Conheça nossos Combos Especiais
+                  - paragraph: Burgers artesanais acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
+                - generic:
+                  - button:
+                    - generic: Explorar Combos
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Entrega Rápida
+                  - paragraph: Seu burger quentinho no menor tempo
+              - generic:
+                - generic:
+                  - paragraph: Pagamento Seguro
+                  - paragraph: Pix automático, cartão e dinheiro
+              - generic:
+                - generic:
+                  - paragraph: Qualidade Artesanal
+                  - paragraph: Ingredientes frescos e selecionados
+          - contentinfo:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=4]: Vruum Burguer
+                - paragraph: Burgers artesanais preparados com ingredientes nobres e muito amor por hambúrguer de verdade.
+              - generic:
+                - paragraph: Localização & Contato
+                - generic: Av. Brasil, 1500 - Centro
+                - generic: (11) 99999-9999
+                - link:
+                  - /url: https://wa.me/31982607426
+                  - generic: "31982607426"
+                - link:
+                  - /url: https://instagram.com/vruummburguer
+                  - generic: "@vruummburguer"
+              - generic:
+                - paragraph: Horário de Funcionamento
+                - generic: Aberto Agora
+                - paragraph: 18:00 às 23:59
+            - generic:
+              - paragraph: © 2026 Vruum Burguer. Todos os direitos reservados.
+              - paragraph:
+                - text: Desenvolvido por
+                - link:
+                  - /url: https://instagram.com/davialeixo_nogueira
+                  - text: Davi Aleixo
+                - text: "|"
+                - link:
+                  - /url: https://wa.me/5531982607426
+                  - text: "31982607426"
+  - dialog [ref=f4e96]:
+    - generic [ref=f4e98]:
+      - img "Combo Smash Duplo Família (2 Burgers + 2 Fritas)" [ref=f4e99]
+      - generic [ref=f4e101]:
+        - heading "Combo Smash Duplo Família (2 Burgers + 2 Fritas)" [level=3] [ref=f4e102]
+        - paragraph [ref=f4e103]: R$ 79,90
+    - generic [ref=f4e104]:
+      - generic [ref=f4e105]: 2x Vrum Smash Duplo + 2x Batatas Fritas Médias + 2x Refrigerantes Lata.
+      - generic [ref=f4e106]:
+        - generic [ref=f4e107]:
+          - generic [ref=f4e108]:
+            - generic [ref=f4e109]:
+              - generic [ref=f4e110]:
+                - heading "Ponto da Carne" [level=4] [ref=f4e111]
+                - generic [ref=f4e112]: OBRIGATÓRIO
+              - paragraph [ref=f4e113]: Escolha como você prefere seu hambúrguer
+            - generic [ref=f4e114]: 1/1
+          - generic [ref=f4e118]:
+            - generic [ref=f4e119] [cursor=pointer]:
+              - generic [ref=f4e123]:
+                - paragraph [ref=f4e124]: Ao Ponto (Rosadinho e Suculento)
+                - paragraph [ref=f4e125]: Ponto padrão da casa
+              - generic [ref=f4e126]: Grátis
+            - generic [ref=f4e127] [cursor=pointer]:
+              - generic [ref=f4e130]:
+                - paragraph [ref=f4e131]: Bem Passado
+                - paragraph [ref=f4e132]: Sem partes rosadas
+              - generic [ref=f4e133]: Grátis
+            - generic [ref=f4e134] [cursor=pointer]:
+              - generic [ref=f4e137]:
+                - paragraph [ref=f4e138]: Mal Passado (Selado e Vermelhinho)
+                - paragraph [ref=f4e139]: Para os amantes de carne super suculenta
+              - generic [ref=f4e140]: Grátis
+        - generic [ref=f4e141]:
+          - generic [ref=f4e142]:
+            - generic [ref=f4e143]:
+              - generic [ref=f4e144]:
+                - heading "Turbine seu Burger" [level=4] [ref=f4e145]
+                - generic [ref=f4e146]: OPCIONAL
+              - paragraph [ref=f4e147]: Adicione mais sabor ao seu pedido (até 4 opções)
+            - generic [ref=f4e148]: 0/4
+          - generic [ref=f4e152]:
+            - generic [ref=f4e153]:
+              - generic [ref=f4e154]:
+                - paragraph [ref=f4e155]: Bacon Crocante Fatiado (4 fatias)
+                - paragraph [ref=f4e156]: Bacon defumado artesanal
+                - paragraph [ref=f4e157]: + R$ 4,50
+              - button "Adicionar" [active] [ref=f4e159] [cursor=pointer]
+            - generic [ref=f4e160]:
+              - generic [ref=f4e161]:
+                - paragraph [ref=f4e162]: Queijo Cheddar Cremoso Extra
+                - paragraph [ref=f4e163]: Cheddar derretido
+                - paragraph [ref=f4e164]: + R$ 4,00
+              - button "Adicionar" [ref=f4e166] [cursor=pointer]
+            - generic [ref=f4e167]:
+              - generic [ref=f4e168]:
+                - paragraph [ref=f4e169]: Hambúrguer Extra 160g
+                - paragraph [ref=f4e170]: Mais um burger artesanal
+                - paragraph [ref=f4e171]: + R$ 8,90
+              - button "Adicionar" [ref=f4e173] [cursor=pointer]
+            - generic [ref=f4e174]:
+              - generic [ref=f4e175]:
+                - paragraph [ref=f4e176]: Cebola Caramelizada na Chapa
+                - paragraph [ref=f4e177]: Cebola no açúcar mascavo e shoyu
+                - paragraph [ref=f4e178]: + R$ 3,50
+              - button "Adicionar" [ref=f4e180] [cursor=pointer]
+            - generic [ref=f4e181]:
+              - generic [ref=f4e182]:
+                - paragraph [ref=f4e183]: Ovo Caipira Frito na Manteiga
+                - paragraph [ref=f4e184]: Gema mole ou firme
+                - paragraph [ref=f4e185]: + R$ 3,00
+              - button "Adicionar" [ref=f4e187] [cursor=pointer]
+        - generic [ref=f4e188]:
+          - generic [ref=f4e189]:
+            - generic [ref=f4e190]:
+              - generic [ref=f4e191]:
+                - heading "Molhos Especiais" [level=4] [ref=f4e192]
+                - generic [ref=f4e193]: OPCIONAL
+              - paragraph [ref=f4e194]: Escolha os molhos artesanais da casa
+            - generic [ref=f4e195]: 0/3
+          - generic [ref=f4e199]:
+            - generic [ref=f4e200]:
+              - generic [ref=f4e201]:
+                - paragraph [ref=f4e202]: Maionese Verde Especial da Casa (Pote 50ml)
+                - paragraph [ref=f4e203]: Receita secreta de ervas frescas
+                - paragraph [ref=f4e204]: + R$ 3,00
+              - button "Adicionar" [ref=f4e206] [cursor=pointer]
+            - generic [ref=f4e207]:
+              - generic [ref=f4e208]:
+                - paragraph [ref=f4e209]: Barbecue Artesanal Defumado (Pote 50ml)
+                - paragraph [ref=f4e210]: Sabor adocicado e defumado
+                - paragraph [ref=f4e211]: + R$ 3,00
+              - button "Adicionar" [ref=f4e213] [cursor=pointer]
+            - generic [ref=f4e214]:
+              - generic [ref=f4e215]:
+                - paragraph [ref=f4e216]: Molho de Alho com Pimenta Biquinho (50ml)
+                - paragraph [ref=f4e217]: Cremoso e saboroso sem arder
+                - paragraph [ref=f4e218]: + R$ 3,50
+              - button "Adicionar" [ref=f4e220] [cursor=pointer]
+      - generic [ref=f4e221]:
+        - generic [ref=f4e222]: Alguma observação para o preparo?
+        - textbox "Alguma observação para o preparo?" [ref=f4e223]:
+          - /placeholder: "Ex: Ponto da carne, sem cebola, maionese à parte..."
+    - generic [ref=f4e225]:
+      - generic [ref=f4e226]:
+        - button [ref=f4e227] [cursor=pointer]
+        - generic [ref=f4e229]: "1"
+        - button [ref=f4e230] [cursor=pointer]
+      - button "Adicionar ao Pedido R$ 79,90" [ref=f4e232] [cursor=pointer]:
+        - generic [ref=f4e233]: Adicionar ao Pedido
+        - generic [ref=f4e234]: R$ 79,90
+    - button "Close" [ref=f4e235] [cursor=pointer]

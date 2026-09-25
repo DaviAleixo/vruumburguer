@@ -1,0 +1,200 @@
+- generic:
+  - generic [aria-hidden]:
+    - generic:
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=1]: Vruum Burguer
+                    - generic:
+                      - generic: Aberto agora
+                      - generic: •
+                      - generic: 18:00 - 23:59
+                - generic:
+                  - generic:
+                    - button
+                  - button
+                  - button [expanded]
+          - generic:
+            - generic:
+              - generic:
+                - button: Burgers Artesanais
+                - button: Combos Especiais
+                - button: Porções & Acompanhamentos
+                - button: Bebidas
+                - button: Sobremesas
+          - main:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=2]:
+                    - generic: Mais Pedidos
+                    - generic: Top 7
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: "#1"
+                    - generic:
+                      - heading [level=3]: Combo Smash Duplo Família (2 Burgers + 2 Fritas)
+                      - generic: R$ 79,90
+                - generic:
+                  - generic:
+                    - generic: "#2"
+                    - generic:
+                      - heading [level=3]: Combo Vrum Classic + Fritas + Refri
+                      - generic: R$ 48,90
+                - generic:
+                  - generic:
+                    - generic: "#3"
+                    - generic:
+                      - heading [level=3]: Vrum Bacon Monster
+                      - generic: R$ 44,90
+                - generic:
+                  - generic:
+                    - generic: "#4"
+                    - generic:
+                      - heading [level=3]: Vrum Classic Burger
+                      - generic: R$ 34,90
+                - generic:
+                  - generic:
+                    - generic: "#5"
+                    - generic:
+                      - heading [level=3]: Vrum Crispy Chicken
+                      - generic: R$ 32,90
+                - generic:
+                  - generic:
+                    - generic: "#6"
+                    - generic:
+                      - heading [level=3]: Vrum Smash Duplo
+                      - generic: R$ 29,90
+                - generic:
+                  - generic:
+                    - generic: "#7"
+                    - generic:
+                      - heading [level=3]: Onion Rings Empanadas
+                      - generic: R$ 24,90
+            - generic:
+              - generic:
+                - generic: NOSSO CARDÁPIO
+                - heading [level=2]: Burgers Artesanais
+                - paragraph: Feitos artesanalmente com ingredientes nobres e muito sabor.
+              - generic:
+                - textbox:
+                  - /placeholder: Buscar burgers, bebidas, combos...
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Classic Burger
+                        - generic: Top
+                      - paragraph: Pão brioche selado na manteiga, blend artesanal 180g, queijo cheddar derretido, cebola caramelizada e maionese especial da casa.
+                    - generic: R$ 34,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Bacon Monster
+                      - paragraph: Pão brioche, 2x blends artesanais 160g, fatias generosas de bacon crocante, cheddar duplo, picles e molho barbecue rústico.
+                    - generic: R$ 44,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Smash Duplo
+                      - paragraph: Pão de batata macio, 2x ultra smash 90g com crostinha perfeita, queijo prato duplo e molho especial.
+                    - generic: R$ 29,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Crispy Chicken
+                      - paragraph: Pão brioche, sobrecoxa empanada crocante temperada com especiarias, alface americana fresca, tomate e maionese de alho confit.
+                    - generic: R$ 32,90
+                  - generic:
+                    - button
+            - generic:
+              - generic:
+                - generic:
+                  - generic: SELEÇÃO ESPECIAL
+                  - heading [level=3]: Conheça nossos Combos Especiais
+                  - paragraph: Burgers artesanais acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
+                - generic:
+                  - button:
+                    - generic: Explorar Combos
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Entrega Rápida
+                  - paragraph: Seu burger quentinho no menor tempo
+              - generic:
+                - generic:
+                  - paragraph: Pagamento Seguro
+                  - paragraph: Pix automático, cartão e dinheiro
+              - generic:
+                - generic:
+                  - paragraph: Qualidade Artesanal
+                  - paragraph: Ingredientes frescos e selecionados
+          - contentinfo:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=4]: Vruum Burguer
+                - paragraph: Burgers artesanais preparados com ingredientes nobres e muito amor por hambúrguer de verdade.
+              - generic:
+                - paragraph: Localização & Contato
+                - generic: Av. Brasil, 1500 - Centro
+                - generic: (11) 99999-9999
+                - link:
+                  - /url: https://wa.me/31982607426
+                  - generic: "31982607426"
+                - link:
+                  - /url: https://instagram.com/vruummburguer
+                  - generic: "@vruummburguer"
+              - generic:
+                - paragraph: Horário de Funcionamento
+                - generic: Aberto Agora
+                - paragraph: 18:00 às 23:59
+            - generic:
+              - paragraph: © 2026 Vruum Burguer. Todos os direitos reservados.
+              - paragraph:
+                - text: Desenvolvido por
+                - link:
+                  - /url: https://instagram.com/davialeixo_nogueira
+                  - text: Davi Aleixo
+                - text: "|"
+                - link:
+                  - /url: https://wa.me/5531982607426
+                  - text: "31982607426"
+  - dialog [ref=f3e96]:
+    - button "Close" [active] [ref=f3e97] [cursor=pointer]
+    - heading "Acessar Conta" [level=2] [ref=f3e103]
+    - generic [ref=f3e105]:
+      - generic [ref=f3e106]:
+        - heading "Identificação Rápida" [level=3] [ref=f3e112]
+        - paragraph [ref=f3e113]: Digite seu WhatsApp para carregar seus endereços e agilizar seus pedidos.
+      - generic [ref=f3e114]:
+        - generic [ref=f3e115]:
+          - generic [ref=f3e116]: Seu WhatsApp / Celular *
+          - textbox "Seu WhatsApp / Celular *" [ref=f3e118]:
+            - /placeholder: (11) 99999-9999
+        - generic [ref=f3e119]:
+          - generic [ref=f3e120]: Seu Nome Completo
+          - textbox "Seu Nome Completo" [ref=f3e122]:
+            - /placeholder: "Ex: Carlos Silva"
+          - paragraph [ref=f3e123]: Se já pediu antes, seu nome é recuperado automaticamente.
+        - button "Entrar com WhatsApp" [ref=f3e124] [cursor=pointer]
+      - paragraph [ref=f3e125]: 🔒 Sem senhas chatas. Seus endereços ficam salvos com segurança.

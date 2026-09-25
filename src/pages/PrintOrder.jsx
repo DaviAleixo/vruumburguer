@@ -70,19 +70,13 @@ export default function PrintOrderPage() {
   const getPaymentMethodLabel = (method) => {
     if (!method) return "A Combinar";
     const m = String(method).toLowerCase();
-    if (m.includes("pix")) return "Online - Pix";
+    if (m.includes("pix")) return "Pix (na entrega)";
     if (m.includes("dinheiro")) return "Dinheiro";
     if (m.includes("credito") || m.includes("crédito")) return "Cartão de Crédito";
     if (m.includes("debito") || m.includes("débito")) return "Cartão de Débito";
     if (m.includes("cartao") || m.includes("cartão")) return "Cartão";
     if (m.includes("ticket") || m.includes("vale")) return "Vale / Ticket Refeição";
     return method;
-  };
-
-  const isOnlinePaid = (method) => {
-    if (!method) return false;
-    const m = String(method).toLowerCase();
-    return m.includes("pix") || m.includes("online") || m.includes("mercado_pago") || m.includes("pago");
   };
 
   const deliveryAddress = order.customer_address || order.delivery_address || "";
@@ -215,16 +209,12 @@ export default function PrintOrderPage() {
             <p className="font-extrabold text-[13px] mb-1">Pagamento</p>
             <p><b>Forma de Pagamento:</b> {getPaymentMethodLabel(order.payment_method)}</p>
             <p className="text-[11px] text-gray-800">
-              {isOnlinePaid(order.payment_method) ? "Pagamento já realizado" : "Pagamento na entrega / balcão"}
+              {order.order_type === 'delivery' ? "Pagar com o motorista / entregador" : "Pagamento no balcão / mesa"}
             </p>
 
             {/* Aviso de Cobrança para o Entregador */}
             <div className="text-center py-1 font-extrabold text-[11px] border border-black my-1 rounded-xs">
-              {isOnlinePaid(order.payment_method) ? (
-                <span>* Não cobrar do cliente *</span>
-              ) : (
-                <span>* Cobrar do cliente: R$ {totalAmount.toFixed(2).replace(".", ",")} *</span>
-              )}
+              <span>* Cobrar do cliente: R$ {totalAmount.toFixed(2).replace(".", ",")} *</span>
             </div>
           </div>
 
@@ -254,10 +244,9 @@ export default function PrintOrderPage() {
         </>
       )}
 
-      {/* Rodapé Anota AI style */}
+      {/* Rodapé */}
       <div className="text-center pt-2 mt-2 border-t border-dashed border-black text-[10px] space-y-0.5 text-gray-700">
-        <p className="font-bold">Powered By: {restaurantName}</p>
-        <p>Acesse: cardapio.digital</p>
+        <p className="font-bold">{restaurantName}</p>
       </div>
     </div>
   );

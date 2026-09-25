@@ -75,6 +75,9 @@ export default function ClientsPage() {
           });
         }
         const client = clientMap.get(key);
+        if (order.customer_name && order.customer_name !== "Cliente" && (!client.full_name || client.full_name === "Cliente")) {
+          client.full_name = order.customer_name;
+        }
         client.totalOrders += 1;
         client.totalSpent += Number(order.total_amount || 0);
         const orderDate = new Date(order.created_date);
@@ -93,11 +96,15 @@ export default function ClientsPage() {
 
   const clientData = clients;
 
-  const filteredClients = clientData.filter(client =>
-    (client.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (client.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (client.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredClients = clientData.filter(client => {
+    const q = searchTerm.toLowerCase().trim();
+    if (!q) return true;
+    const nameMatch = (client.full_name || '').toLowerCase().includes(q);
+    const phoneClean = (client.phone || '').replace(/\D/g, '');
+    const qClean = q.replace(/\D/g, '');
+    const phoneMatch = (client.phone || '').includes(q) || (qClean.length > 0 && phoneClean.includes(qClean));
+    return nameMatch || phoneMatch;
+  });
   
   const totalOrders = clientData.reduce((sum, client) => sum + client.totalOrders, 0);
 
@@ -155,7 +162,7 @@ export default function ClientsPage() {
               <div className="w-full max-w-sm relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input 
-                  placeholder="Buscar por nome, email ou telefone..."
+                  placeholder="Buscar por nome ou WhatsApp..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -168,7 +175,7 @@ export default function ClientsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Telefone</TableHead>
+                  <TableHead>WhatsApp / Telefone</TableHead>
                   <TableHead className="text-center">Nº de Pedidos</TableHead>
                   <TableHead className="text-right">Gasto Total (LTV)</TableHead>
                   <TableHead className="text-right">Último Pedido</TableHead>
@@ -183,31 +190,38 @@ export default function ClientsPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar>
-                            <AvatarFallback>{client.full_name?.charAt(0).toUpperCase() || '?'}</AvatarFallback>
+                            <AvatarFallback className="bg-red-100 text-red-700 font-bold">
+                              {client.full_name?.charAt(0).toUpperCase() || '?'}
+                            </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-gray-900">{client.full_name}</p>
-                            <p className="text-sm text-gray-600">{client.email}</p>
+                            <p className="font-bold text-gray-900 text-sm">{client.full_name}</p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {client.phone}
-                          {client.phone && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openWhatsApp(client.phone)}>
-                              <MessageSquare className="h-4 w-4 text-green-600" />
+                          <span className="font-semibold text-stone-800 text-xs">{client.phone || "-"}</span>
+                          {client.phone && client.phone !== "-" && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg cursor-pointer"
+                              title="Abrir conversa no WhatsApp" 
+                              onClick={() => openWhatsApp(client.phone)}
+                            >
+                              <MessageSquare className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="secondary">{client.totalOrders}</Badge>
+                        <Badge variant="secondary" className="font-bold">{client.totalOrders}</Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-right font-black text-stone-900">
                         R$ {client.totalSpent.toFixed(2).replace('.', ',')}
                       </TableCell>
-                      <TableCell className="text-right text-gray-600">
+                      <TableCell className="text-right text-gray-600 text-xs">
                         {client.lastOrderDate ? format(client.lastOrderDate, "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
                       </TableCell>
                     </TableRow>

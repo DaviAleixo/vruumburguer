@@ -21,6 +21,19 @@ export const User = {
           localStorage.removeItem("vrumburguer_customer_phone");
           return null;
         }
+        if (parsed?.email?.includes("cliente.vrumburguer.com")) {
+          parsed.email = "";
+          try { localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(parsed)); } catch {}
+        }
+        if (parsed && (!parsed.full_name || parsed.full_name === "Cliente")) {
+          try {
+            const guestInfo = JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "{}");
+            if (guestInfo.customer_name && guestInfo.customer_name !== "Cliente") {
+              parsed.full_name = guestInfo.customer_name.trim();
+              localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(parsed));
+            }
+          } catch {}
+        }
         return parsed;
       }
       return null;
@@ -42,22 +55,24 @@ export const User = {
     const cleanPhone = phone.replace(/\D/g, "");
     if (!cleanPhone) return null;
 
+    const cleanFullName = fullName && typeof fullName === "string" ? fullName.trim() : "";
+
     try {
       const allUsers = await baseUserModel.list();
       let existingUser = (allUsers || []).find(u => (u.phone || "").replace(/\D/g, "") === cleanPhone);
 
       if (existingUser) {
-        if (fullName && (!existingUser.full_name || existingUser.full_name === "Cliente")) {
+        if (cleanFullName && cleanFullName !== "Cliente" && existingUser.full_name !== cleanFullName) {
           try {
-            await baseUserModel.update(existingUser.id, { full_name: fullName });
-            existingUser.full_name = fullName;
+            await baseUserModel.update(existingUser.id, { full_name: cleanFullName });
+            existingUser.full_name = cleanFullName;
           } catch {}
         }
       } else {
         const newUserObj = {
-          full_name: fullName || "Cliente",
+          full_name: (cleanFullName && cleanFullName !== "Cliente") ? cleanFullName : "Cliente",
           phone: phone,
-          email: `${cleanPhone}@cliente.vrumburguer.com`,
+          email: "",
           role: "user",
           created_date: new Date().toISOString()
         };
@@ -73,9 +88,9 @@ export const User = {
       console.error("Erro ao fazer login com telefone:", err);
       const fallbackUser = {
         id: `user_${cleanPhone}`,
-        full_name: fullName || "Cliente",
+        full_name: (cleanFullName && cleanFullName !== "Cliente") ? cleanFullName : "Cliente",
         phone: phone,
-        email: `${cleanPhone}@cliente.vrumburguer.com`,
+        email: "",
         role: "user"
       };
       if (typeof window !== "undefined") {

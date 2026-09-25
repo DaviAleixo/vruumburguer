@@ -1,0 +1,165 @@
+- generic [ref=f3e5]:
+  - banner [ref=f3e6]:
+    - generic [ref=f3e8]:
+      - generic [ref=f3e9]:
+        - img "Logo" [ref=f3e176]
+        - generic [ref=f3e12]:
+          - heading "Vruum Burguer" [level=1] [ref=f3e13]
+          - generic [ref=f3e14]:
+            - generic [ref=f3e15]: Aberto agora
+            - generic [ref=f3e18]: •
+            - generic [ref=f3e19]: 18:00 - 23:59
+      - generic [ref=f3e20]:
+        - button "Carrinho" [ref=f3e22] [cursor=pointer]
+        - button "Informações da Loja" [active] [ref=f3e177] [cursor=pointer]
+        - button "Meu Perfil" [ref=f3e23] [cursor=pointer]
+  - generic [ref=f3e27]:
+    - button "Burgers Artesanais" [ref=f3e181] [cursor=pointer]
+    - button "Combos Especiais" [ref=f3e183] [cursor=pointer]
+    - button "Porções & Acompanhamentos" [ref=f3e184] [cursor=pointer]
+    - button "Bebidas" [ref=f3e185] [cursor=pointer]
+    - button "Sobremesas" [ref=f3e186] [cursor=pointer]
+  - main [ref=f3e28]:
+    - generic [ref=f3e187]:
+      - heading "Mais Pedidos Top 7" [level=2] [ref=f3e193]:
+        - generic [ref=f3e194]: Mais Pedidos
+        - generic [ref=f3e195]: Top 7
+      - generic [ref=f3e196]:
+        - generic [ref=f3e198] [cursor=pointer]:
+          - generic [ref=f3e199]:
+            - img "Combo Smash Duplo Família (2 Burgers + 2 Fritas)" [ref=f3e200]
+            - generic [ref=f3e201]: "#1"
+          - generic [ref=f3e205]:
+            - heading "Combo Smash Duplo Família (2 Burgers + 2 Fritas)" [level=3] [ref=f3e206]
+            - generic [ref=f3e207]: R$ 79,90
+        - generic [ref=f3e210] [cursor=pointer]:
+          - generic [ref=f3e211]:
+            - img "Combo Vrum Classic + Fritas + Refri" [ref=f3e212]
+            - generic [ref=f3e213]: "#2"
+          - generic [ref=f3e217]:
+            - heading "Combo Vrum Classic + Fritas + Refri" [level=3] [ref=f3e218]
+            - generic [ref=f3e219]: R$ 48,90
+        - generic [ref=f3e222] [cursor=pointer]:
+          - generic [ref=f3e223]:
+            - img "Vrum Bacon Monster" [ref=f3e224]
+            - generic [ref=f3e225]: "#3"
+          - generic [ref=f3e229]:
+            - heading "Vrum Bacon Monster" [level=3] [ref=f3e230]
+            - generic [ref=f3e231]: R$ 44,90
+        - generic [ref=f3e234] [cursor=pointer]:
+          - generic [ref=f3e235]:
+            - img "Vrum Classic Burger" [ref=f3e236]
+            - generic [ref=f3e237]: "#4"
+          - generic [ref=f3e241]:
+            - heading "Vrum Classic Burger" [level=3] [ref=f3e242]
+            - generic [ref=f3e243]: R$ 34,90
+        - generic [ref=f3e246] [cursor=pointer]:
+          - generic [ref=f3e247]:
+            - img "Vrum Crispy Chicken" [ref=f3e248]
+            - generic [ref=f3e249]: "#5"
+          - generic [ref=f3e253]:
+            - heading "Vrum Crispy Chicken" [level=3] [ref=f3e254]
+            - generic [ref=f3e255]: R$ 32,90
+        - generic [ref=f3e258] [cursor=pointer]:
+          - generic [ref=f3e259]:
+            - img "Vrum Smash Duplo" [ref=f3e260]
+            - generic [ref=f3e261]: "#6"
+          - generic [ref=f3e265]:
+            - heading "Vrum Smash Duplo" [level=3] [ref=f3e266]
+            - generic [ref=f3e267]: R$ 29,90
+        - generic [ref=f3e270] [cursor=pointer]:
+          - generic [ref=f3e271]:
+            - img "Onion Rings Empanadas" [ref=f3e272]
+            - generic [ref=f3e273]: "#7"
+          - generic [ref=f3e277]:
+            - heading "Onion Rings Empanadas" [level=3] [ref=f3e278]
+            - generic [ref=f3e279]: R$ 24,90
+    - generic [ref=f3e29]:
+      - generic [ref=f3e30]:
+        - generic [ref=f3e31]: NOSSO CARDÁPIO
+        - heading "Burgers Artesanais" [level=2] [ref=f3e281]
+        - paragraph [ref=f3e36]: Feitos artesanalmente com ingredientes nobres e muito sabor.
+      - textbox "Buscar burgers, bebidas, combos..." [ref=f3e38]
+    - generic [ref=f3e282]:
+      - generic [ref=f3e284] [cursor=pointer]:
+        - generic [ref=f3e285]:
+          - generic [ref=f3e286]:
+            - generic [ref=f3e287]:
+              - heading "Vrum Classic Burger" [level=3] [ref=f3e288]
+              - generic [ref=f3e289]: Top
+            - paragraph [ref=f3e292]: Pão brioche selado na manteiga, blend artesanal 180g, queijo cheddar derretido, cebola caramelizada e maionese especial da casa.
+          - generic [ref=f3e293]: R$ 34,90
+        - generic [ref=f3e295]:
+          - img "Vrum Classic Burger" [ref=f3e296]
+          - button "Adicionar produto"
+      - generic [ref=f3e298] [cursor=pointer]:
+        - generic [ref=f3e299]:
+          - generic [ref=f3e300]:
+            - heading "Vrum Bacon Monster" [level=3] [ref=f3e302]
+            - paragraph [ref=f3e303]: Pão brioche, 2x blends artesanais 160g, fatias generosas de bacon crocante, cheddar duplo, picles e molho barbecue rústico.
+          - generic [ref=f3e304]: R$ 44,90
+        - generic [ref=f3e306]:
+          - img "Vrum Bacon Monster" [ref=f3e307]
+          - button "Adicionar produto"
+      - generic [ref=f3e309] [cursor=pointer]:
+        - generic [ref=f3e310]:
+          - generic [ref=f3e311]:
+            - heading "Vrum Smash Duplo" [level=3] [ref=f3e313]
+            - paragraph [ref=f3e314]: Pão de batata macio, 2x ultra smash 90g com crostinha perfeita, queijo prato duplo e molho especial.
+          - generic [ref=f3e315]: R$ 29,90
+        - generic [ref=f3e317]:
+          - img "Vrum Smash Duplo" [ref=f3e318]
+          - button "Adicionar produto"
+      - generic [ref=f3e320] [cursor=pointer]:
+        - generic [ref=f3e321]:
+          - generic [ref=f3e322]:
+            - heading "Vrum Crispy Chicken" [level=3] [ref=f3e324]
+            - paragraph [ref=f3e325]: Pão brioche, sobrecoxa empanada crocante temperada com especiarias, alface americana fresca, tomate e maionese de alho confit.
+          - generic [ref=f3e326]: R$ 32,90
+        - generic [ref=f3e328]:
+          - img "Vrum Crispy Chicken" [ref=f3e329]
+          - button "Adicionar produto"
+    - generic [ref=f3e331]:
+      - generic [ref=f3e332]:
+        - generic [ref=f3e333]: SELEÇÃO ESPECIAL
+        - heading "Conheça nossos Combos Especiais" [level=3] [ref=f3e337]
+        - paragraph [ref=f3e338]: Burgers artesanais acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
+      - button "Explorar Combos" [ref=f3e340] [cursor=pointer]
+    - generic [ref=f3e43]:
+      - generic [ref=f3e51]:
+        - paragraph [ref=f3e52]: Entrega Rápida
+        - paragraph [ref=f3e53]: Seu burger quentinho no menor tempo
+      - generic [ref=f3e59]:
+        - paragraph [ref=f3e60]: Pagamento Seguro
+        - paragraph [ref=f3e61]: Pix automático, cartão e dinheiro
+      - generic [ref=f3e66]:
+        - paragraph [ref=f3e67]: Qualidade Artesanal
+        - paragraph [ref=f3e68]: Ingredientes frescos e selecionados
+  - contentinfo [ref=f3e69]:
+    - generic [ref=f3e70]:
+      - generic [ref=f3e71]:
+        - generic [ref=f3e72]:
+          - img "Logo" [ref=f3e344]
+          - heading "Vruum Burguer" [level=4] [ref=f3e75]
+        - paragraph [ref=f3e76]: Burgers artesanais preparados com ingredientes nobres e muito amor por hambúrguer de verdade.
+      - generic [ref=f3e77]:
+        - paragraph [ref=f3e78]: Localização & Contato
+        - generic [ref=f3e79]: Av. Brasil, 1500 - Centro
+        - generic [ref=f3e345]: (11) 99999-9999
+        - link "31982607426" [ref=f3e349] [cursor=pointer]:
+          - /url: https://wa.me/31982607426
+        - link "@vruummburguer" [ref=f3e353] [cursor=pointer]:
+          - /url: https://instagram.com/vruummburguer
+      - generic [ref=f3e84]:
+        - paragraph [ref=f3e85]: Horário de Funcionamento
+        - generic [ref=f3e86]: Aberto Agora
+        - paragraph [ref=f3e89]: 18:00 às 23:59
+    - generic [ref=f3e90]:
+      - paragraph [ref=f3e91]: © 2026 Vruum Burguer. Todos os direitos reservados.
+      - paragraph [ref=f3e92]:
+        - text: Desenvolvido por
+        - link "Davi Aleixo" [ref=f3e93] [cursor=pointer]:
+          - /url: https://instagram.com/davialeixo_nogueira
+        - text: "|"
+        - link "31982607426" [ref=f3e94] [cursor=pointer]:
+          - /url: https://wa.me/5531982607426

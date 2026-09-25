@@ -1,0 +1,304 @@
+- generic:
+  - generic [aria-hidden]:
+    - generic:
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=1]: Vruum Burguer
+                    - generic:
+                      - generic: Aberto agora
+                      - generic: •
+                      - generic: 18:00 - 23:59
+                - generic:
+                  - generic:
+                    - button:
+                      - generic: "1"
+                  - button
+                  - button
+          - generic:
+            - generic:
+              - generic:
+                - button: Burgers Artesanais
+                - button: Combos Especiais
+                - button: Porções & Acompanhamentos
+                - button: Bebidas
+                - button: Sobremesas
+          - main:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=2]:
+                    - generic: Mais Pedidos
+                    - generic: Top 7
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: "#1"
+                    - generic:
+                      - heading [level=3]: Combo Smash Duplo Família (2 Burgers + 2 Fritas)
+                      - generic: R$ 79,90
+                - generic:
+                  - generic:
+                    - generic: "#2"
+                    - generic:
+                      - heading [level=3]: Combo Vrum Classic + Fritas + Refri
+                      - generic: R$ 48,90
+                - generic:
+                  - generic:
+                    - generic: "#3"
+                    - generic:
+                      - heading [level=3]: Vrum Bacon Monster
+                      - generic: R$ 44,90
+                - generic:
+                  - generic:
+                    - generic: "#4"
+                    - generic:
+                      - heading [level=3]: Vrum Classic Burger
+                      - generic: R$ 34,90
+                - generic:
+                  - generic:
+                    - generic: "#5"
+                    - generic:
+                      - heading [level=3]: Vrum Crispy Chicken
+                      - generic: R$ 32,90
+                - generic:
+                  - generic:
+                    - generic: "#6"
+                    - generic:
+                      - heading [level=3]: Vrum Smash Duplo
+                      - generic: R$ 29,90
+                - generic:
+                  - generic:
+                    - generic: "#7"
+                    - generic:
+                      - heading [level=3]: Onion Rings Empanadas
+                      - generic: R$ 24,90
+            - generic:
+              - generic:
+                - generic: NOSSO CARDÁPIO
+                - heading [level=2]: Burgers Artesanais
+                - paragraph: Feitos artesanalmente com ingredientes nobres e muito sabor.
+              - generic:
+                - textbox:
+                  - /placeholder: Buscar burgers, bebidas, combos...
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Classic Burger
+                        - generic: Top
+                      - paragraph: Pão brioche selado na manteiga, blend artesanal 180g, queijo cheddar derretido, cebola caramelizada e maionese especial da casa.
+                    - generic: R$ 34,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Bacon Monster
+                      - paragraph: Pão brioche, 2x blends artesanais 160g, fatias generosas de bacon crocante, cheddar duplo, picles e molho barbecue rústico.
+                    - generic: R$ 44,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Smash Duplo
+                      - paragraph: Pão de batata macio, 2x ultra smash 90g com crostinha perfeita, queijo prato duplo e molho especial.
+                    - generic: R$ 29,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Crispy Chicken
+                      - paragraph: Pão brioche, sobrecoxa empanada crocante temperada com especiarias, alface americana fresca, tomate e maionese de alho confit.
+                    - generic: R$ 32,90
+                  - generic:
+                    - button
+            - generic:
+              - generic:
+                - generic:
+                  - generic: SELEÇÃO ESPECIAL
+                  - heading [level=3]: Conheça nossos Combos Especiais
+                  - paragraph: Burgers artesanais acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
+                - generic:
+                  - button:
+                    - generic: Explorar Combos
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Entrega Rápida
+                  - paragraph: Seu burger quentinho no menor tempo
+              - generic:
+                - generic:
+                  - paragraph: Pagamento Seguro
+                  - paragraph: Pix automático, cartão e dinheiro
+              - generic:
+                - generic:
+                  - paragraph: Qualidade Artesanal
+                  - paragraph: Ingredientes frescos e selecionados
+          - contentinfo:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=4]: Vruum Burguer
+                - paragraph: Burgers artesanais preparados com ingredientes nobres e muito amor por hambúrguer de verdade.
+              - generic:
+                - paragraph: Localização & Contato
+                - generic: Av. Brasil, 1500 - Centro
+                - generic: (11) 99999-9999
+                - link:
+                  - /url: https://wa.me/31982607426
+                  - generic: "31982607426"
+                - link:
+                  - /url: https://instagram.com/vruummburguer
+                  - generic: "@vruummburguer"
+              - generic:
+                - paragraph: Horário de Funcionamento
+                - generic: Aberto Agora
+                - paragraph: 18:00 às 23:59
+            - generic:
+              - paragraph: © 2026 Vruum Burguer. Todos os direitos reservados.
+              - paragraph:
+                - text: Desenvolvido por
+                - link:
+                  - /url: https://instagram.com/davialeixo_nogueira
+                  - text: Davi Aleixo
+                - text: "|"
+                - link:
+                  - /url: https://wa.me/5531982607426
+                  - text: "31982607426"
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=3]: Seu Carrinho
+                  - generic: 1 item no pedido
+              - button
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Combo Smash Duplo Família (2 Burgers + 2 Fritas)
+                  - paragraph: Ao Ponto (Rosadinho e Suculento)
+                  - paragraph: R$ 79,90
+                - generic:
+                  - button
+                  - generic: "1"
+                  - button
+            - generic:
+              - generic:
+                - generic:
+                  - generic: Subtotal
+                  - generic: R$ 79,90
+                - generic:
+                  - generic: Total
+                  - generic: R$ 79,90
+              - generic:
+                - button:
+                  - generic: Adicionar Mais Itens
+                - button:
+                  - generic: Finalizar Pedido
+  - dialog [ref=f5e473]:
+    - heading "Finalizar Pedido" [level=2] [ref=f5e475]
+    - generic [ref=f5e476]:
+      - generic [ref=f5e477]:
+        - generic [ref=f5e478]:
+          - generic [ref=f5e479]: WhatsApp / Celular *
+          - textbox "(11) 99999-9999" [active] [ref=f5e481]: (31) 98260-7426
+        - generic [ref=f5e482]:
+          - generic [ref=f5e483]:
+            - generic [ref=f5e484]: Nome completo *
+            - button "Alterar" [ref=f5e485] [cursor=pointer]
+          - generic [ref=f5e490]:
+            - textbox "Seu nome completo" [ref=f5e491]: davi
+            - button "Clique para editar seu nome" [ref=f5e492] [cursor=pointer]
+      - generic [ref=f5e496]:
+        - tablist [ref=f5e497]:
+          - tab "Delivery" [selected] [ref=f5e498] [cursor=pointer]
+          - tab "Retirada" [ref=f5e504] [cursor=pointer]
+          - tab "🍽️ Na Mesa" [ref=f5e510] [cursor=pointer]:
+            - generic [ref=f5e511]: 🍽️
+            - text: Na Mesa
+        - tabpanel "Delivery" [ref=f5e512]:
+          - generic [ref=f5e513]:
+            - generic [ref=f5e514]: Entrega no seu endereço
+            - generic [ref=f5e521]: ⏱️ 30-40 min
+          - generic [ref=f5e522]:
+            - generic [ref=f5e523]: Endereço de Entrega
+            - generic [ref=f5e529]:
+              - generic [ref=f5e530]:
+                - generic [ref=f5e531]: CEP
+                - textbox "CEP" [ref=f5e533]:
+                  - /placeholder: 00000-000
+              - generic [ref=f5e534]:
+                - text: Identificação do Local (Opcional)
+                - textbox "Identificação do Local (Opcional)" [ref=f5e535]:
+                  - /placeholder: "Ex: Minha Casa, Trabalho"
+                  - text: Outro Endereço
+            - generic [ref=f5e536]:
+              - generic [ref=f5e537]:
+                - text: Rua / Logradouro *
+                - textbox "Rua / Logradouro *" [ref=f5e538]:
+                  - /placeholder: Nome da rua ou avenida
+              - generic [ref=f5e539]:
+                - text: Número *
+                - textbox "Número *" [ref=f5e540]:
+                  - /placeholder: "123"
+            - generic [ref=f5e541]:
+              - generic [ref=f5e542]:
+                - text: Complemento (Opcional)
+                - textbox "Complemento (Opcional)" [ref=f5e543]:
+                  - /placeholder: Apto, Bloco, Casa 2...
+              - generic [ref=f5e544]:
+                - text: Bairro *
+                - textbox "Bairro *" [ref=f5e545]:
+                  - /placeholder: Bairro
+            - generic [ref=f5e546]:
+              - generic [ref=f5e547]:
+                - text: Cidade *
+                - textbox "Cidade *" [ref=f5e548]:
+                  - /placeholder: Cidade
+              - generic [ref=f5e549]:
+                - text: UF *
+                - textbox "UF *" [ref=f5e550]:
+                  - /placeholder: MG
+      - generic [ref=f5e551]:
+        - generic [ref=f5e552]:
+          - generic [ref=f5e553]: Forma de pagamento *
+          - generic [ref=f5e554]:
+            - button "PIX" [ref=f5e555] [cursor=pointer]
+            - button "Cartão" [ref=f5e563] [cursor=pointer]
+            - button "Dinheiro" [ref=f5e567] [cursor=pointer]
+        - generic [ref=f5e572]:
+          - text: Observações (Opcional)
+          - textbox "Observações sobre o pedido..." [ref=f5e573]
+      - generic [ref=f5e574]:
+        - text: Cupom de Desconto
+        - generic [ref=f5e575]:
+          - textbox "INSIRA SEU CUPOM" [ref=f5e576]
+          - button "Aplicar" [ref=f5e577] [cursor=pointer]
+      - generic [ref=f5e578]:
+        - heading "Resumo do pedido" [level=3] [ref=f5e579]
+        - generic [ref=f5e580]:
+          - generic [ref=f5e581]:
+            - generic [ref=f5e582]: Subtotal
+            - generic [ref=f5e583]: R$ 79,90
+          - generic [ref=f5e584]:
+            - generic [ref=f5e585]: Total
+            - generic [ref=f5e586]: R$ 79,90
+      - generic [ref=f5e587]:
+        - button "Voltar" [ref=f5e588] [cursor=pointer]
+        - button "Confirmar Pedido ➔" [ref=f5e589] [cursor=pointer]
+    - button "Close" [ref=f5e590] [cursor=pointer]

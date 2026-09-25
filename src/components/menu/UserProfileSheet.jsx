@@ -3,7 +3,22 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User as UserIcon, LogOut, MapPin, Trash2, Edit2, PlusCircle, Ticket, ShoppingBag, PhoneCall, Pencil, Check, X, Loader2, Copy } from "lucide-react";
+import { 
+  User as UserIcon, 
+  LogOut, 
+  MapPin, 
+  Trash2, 
+  Edit2, 
+  Ticket, 
+  ShoppingBag, 
+  PhoneCall, 
+  Pencil, 
+  Check, 
+  X, 
+  Loader2, 
+  Copy,
+  Plus
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/entities/User";
@@ -11,7 +26,6 @@ import { UserAddress } from "@/entities/UserAddress";
 import { Coupon } from "@/entities/Coupon";
 import { CouponUsage } from "@/entities/CouponUsage";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
@@ -28,7 +42,7 @@ function AddressForm({ address, onSave, onCancel }) {
 
   const handleCepChange = async (e) => {
     const cep = e.target.value.replace(/\D/g, '');
-    setFormData(prev => ({...prev, cep}));
+    setFormData(prev => ({ ...prev, cep }));
 
     if (cep.length === 8) {
       setIsFetchingCep(true);
@@ -38,10 +52,10 @@ function AddressForm({ address, onSave, onCancel }) {
         if (!data.erro) {
           setFormData(prev => ({
             ...prev,
-            street: data.logradouro,
-            neighborhood: data.bairro,
-            city: data.localidade,
-            state: data.uf,
+            street: data.logradouro || prev.street,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.localidade || prev.city,
+            state: data.uf || prev.state,
           }));
         }
       } catch (error) {
@@ -58,115 +72,123 @@ function AddressForm({ address, onSave, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-gray-50 rounded-lg border">
-      <h4 className="font-semibold text-lg">{address ? 'Editar Endereço' : 'Novo Endereço'}</h4>
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-stone-900/90 rounded-2xl border border-stone-800 text-stone-100">
+      <h4 className="font-bold text-base text-white">{address ? 'Editar Endereço' : 'Novo Endereço'}</h4>
       
       <div className="space-y-3">
         <div>
-          <Label htmlFor="name" className="text-sm font-medium">Nome do endereço</Label>
+          <Label htmlFor="name" className="text-xs font-bold uppercase text-stone-400">Identificação do endereço</Label>
           <Input 
             id="name" 
             value={formData.name} 
             onChange={handleInputChange} 
             placeholder="Ex: Casa, Trabalho"
             required 
-            className="mt-1"
+            className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl"
           />
         </div>
         
         <div>
-          <Label htmlFor="cep" className="text-sm font-medium">CEP</Label>
+          <Label htmlFor="cep" className="text-xs font-bold uppercase text-stone-400">CEP</Label>
           <Input 
             id="cep" 
             value={formData.cep} 
             onChange={handleCepChange} 
             placeholder="00000-000"
             required 
-            className="mt-1"
+            className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl"
           />
         </div>
         
         <div>
-          <Label htmlFor="street" className="text-sm font-medium">Rua/Logradouro</Label>
+          <Label htmlFor="street" className="text-xs font-bold uppercase text-stone-400">Rua / Logradouro</Label>
           <Input 
             id="street" 
             value={formData.street} 
             onChange={handleInputChange} 
             required 
             disabled={isFetchingCep} 
-            className="mt-1"
+            className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl"
           />
         </div>
         
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="number" className="text-sm font-medium">Número</Label>
+            <Label htmlFor="number" className="text-xs font-bold uppercase text-stone-400">Número</Label>
             <Input 
               id="number" 
               value={formData.number} 
               onChange={handleInputChange} 
               placeholder="123"
               required 
-              className="mt-1"
+              className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl"
             />
           </div>
           <div>
-            <Label htmlFor="complement" className="text-sm font-medium">Complemento</Label>
+            <Label htmlFor="complement" className="text-xs font-bold uppercase text-stone-400">Complemento</Label>
             <Input 
               id="complement" 
               value={formData.complement} 
               onChange={handleInputChange} 
               placeholder="Apto 45"
-              className="mt-1"
+              className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl"
             />
           </div>
         </div>
         
         <div>
-          <Label htmlFor="neighborhood" className="text-sm font-medium">Bairro</Label>
+          <Label htmlFor="neighborhood" className="text-xs font-bold uppercase text-stone-400">Bairro</Label>
           <Input 
             id="neighborhood" 
             value={formData.neighborhood} 
             onChange={handleInputChange} 
             required 
             disabled={isFetchingCep} 
-            className="mt-1"
+            className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl"
           />
         </div>
         
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2">
-            <Label htmlFor="city" className="text-sm font-medium">Cidade</Label>
+            <Label htmlFor="city" className="text-xs font-bold uppercase text-stone-400">Cidade</Label>
             <Input 
               id="city" 
               value={formData.city} 
               onChange={handleInputChange} 
               required 
               disabled={isFetchingCep} 
-              className="mt-1"
+              className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl"
             />
           </div>
           <div>
-            <Label htmlFor="state" className="text-sm font-medium">UF</Label>
+            <Label htmlFor="state" className="text-xs font-bold uppercase text-stone-400">UF</Label>
             <Input 
               id="state" 
               value={formData.state} 
               onChange={handleInputChange} 
               maxLength="2"
-              placeholder="SP"
+              placeholder="MG"
               required 
               disabled={isFetchingCep} 
-              className="mt-1"
+              className="mt-1 bg-stone-950 border-stone-800 text-white placeholder:text-stone-500 rounded-xl uppercase"
             />
           </div>
         </div>
       </div>
       
-      <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+      <div className="flex gap-2 justify-end pt-2">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel} 
+          className="rounded-xl bg-stone-950 border-stone-800 text-stone-300 hover:bg-stone-800"
+        >
           Cancelar
         </Button>
-        <Button type="submit" className="bg-red-600 hover:bg-red-700 w-full sm:w-auto">
+        <Button 
+          type="submit" 
+          className="bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold"
+        >
           Salvar endereço
         </Button>
       </div>
@@ -179,13 +201,15 @@ export default function UserProfileSheet() {
   const [addresses, setAddresses] = useState([]);
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [couponUsages, setCouponUsages] = useState([]);
-  const [isEditingAddress, setIsEditingAddress] = useState(null); // null for new, address object for editing
+  const [isEditingAddress, setIsEditingAddress] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   
   const [phoneInput, setPhoneInput] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [isSubmittingPhone, setIsSubmittingPhone] = useState(false);
   const [phoneError, setPhoneError] = useState("");
+  const [isLookingUpPhone, setIsLookingUpPhone] = useState(false);
+  const [foundNameMessage, setFoundNameMessage] = useState("");
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -204,19 +228,60 @@ export default function UserProfileSheet() {
 
   const loadUserData = async () => {
     try {
-      const userData = await User.me();
-      setUser(userData);
+      let userData = await User.me();
       
       if (!userData) {
+        setUser(null);
         setAddresses([]);
         setAvailableCoupons([]);
         return;
       }
+
+      if (!userData.full_name || userData.full_name === "Cliente") {
+        const cleanPhone = (userData.phone || "").replace(/\D/g, "");
+        let recoveredName = "";
+
+        try {
+          const guestInfo = JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "{}");
+          if (guestInfo.customer_name && guestInfo.customer_name !== "Cliente") {
+            recoveredName = guestInfo.customer_name.trim();
+          }
+        } catch {}
+
+        if (!recoveredName && cleanPhone) {
+          try {
+            if (isSupabaseConfigured() && supabase) {
+              const { data: orderData } = await supabase
+                .from("orders")
+                .select("customer_name")
+                .ilike("customer_phone", `%${cleanPhone.slice(-8)}%`)
+                .neq("customer_name", "Cliente")
+                .order("created_date", { ascending: false })
+                .limit(1);
+              if (orderData && orderData[0]?.customer_name) {
+                recoveredName = orderData[0].customer_name.trim();
+              }
+            }
+          } catch {}
+        }
+
+        if (recoveredName) {
+          userData = { ...userData, full_name: recoveredName };
+          try {
+            await User.update(userData.id, { full_name: recoveredName });
+            if (typeof window !== "undefined") {
+              localStorage.setItem("vrumburguer_current_user", JSON.stringify(userData));
+            }
+          } catch {}
+        }
+      }
+
+      setUser(userData);
       
       const [allAddresses, allCoupons, usages] = await Promise.all([
-          UserAddress.list(),
-          Coupon.filter({ active: true }),
-          CouponUsage.list()
+        UserAddress.list(),
+        Coupon.filter({ active: true }),
+        CouponUsage.list()
       ]);
 
       const cleanPhone = (userData.phone || "").replace(/\D/g, "");
@@ -245,9 +310,9 @@ export default function UserProfileSheet() {
 
       const now = new Date();
       const validCoupons = (allCoupons || []).filter(coupon => {
-          const isExpired = coupon.end_date && new Date(coupon.end_date) < now;
-          const hasStarted = coupon.start_date ? new Date(coupon.start_date) <= now : true;
-          return hasStarted && !isExpired;
+        const isExpired = coupon.end_date && new Date(coupon.end_date) < now;
+        const hasStarted = coupon.start_date ? new Date(coupon.start_date) <= now : true;
+        return hasStarted && !isExpired;
       });
       setAvailableCoupons(validCoupons);
 
@@ -257,98 +322,42 @@ export default function UserProfileSheet() {
     }
   };
 
-  const [isLookingUpPhone, setIsLookingUpPhone] = useState(false);
-  const [foundNameMessage, setFoundNameMessage] = useState("");
-
-  const lookupCustomerNameByPhone = async (phoneStr) => {
-    if (!phoneStr) return;
-    const cleanDigits = phoneStr.replace(/\D/g, "");
-    if (cleanDigits.length < 10) {
-      setFoundNameMessage("");
-      return;
-    }
-
-    setIsLookingUpPhone(true);
-    try {
-      let resolvedName = "";
-
-      if (isSupabaseConfigured() && supabase) {
-        // 1. Tenta RPC do Supabase
-        try {
-          const { data, error } = await supabase.rpc("lookup_customer_by_phone", {
-            p_phone: phoneStr
-          });
-          if (!error && data && data.length > 0 && data[0].customer_name && data[0].customer_name !== "Cliente") {
-            resolvedName = data[0].customer_name;
-          }
-        } catch {}
-
-        // 2. Tenta tabela users diretamente
-        if (!resolvedName) {
-          try {
-            const { data: userData } = await supabase
-              .from("users")
-              .select("full_name")
-              .ilike("phone", `%${cleanDigits.slice(-8)}%`)
-              .limit(1);
-            if (userData && userData[0]?.full_name && userData[0].full_name !== "Cliente") {
-              resolvedName = userData[0].full_name;
-            }
-          } catch {}
-        }
-
-        // 3. Tenta tabela orders diretamente
-        if (!resolvedName) {
-          try {
-            const { data: orderData } = await supabase
-              .from("orders")
-              .select("customer_name")
-              .ilike("customer_phone", `%${cleanDigits.slice(-8)}%`)
-              .order("created_date", { ascending: false })
-              .limit(1);
-            if (orderData && orderData[0]?.customer_name && orderData[0].customer_name !== "Cliente") {
-              resolvedName = orderData[0].customer_name;
-            }
-          } catch {}
-        }
-      }
-
-      // 4. Fallback local em memória/localStorage
-      if (!resolvedName) {
-        try {
-          const allUsers = await User.list();
-          const localMatch = (allUsers || []).find(u => 
-            u.phone && u.phone.replace(/\D/g, "").slice(-8) === cleanDigits.slice(-8)
-          );
-          if (localMatch && localMatch.full_name && localMatch.full_name !== "Cliente") {
-            resolvedName = localMatch.full_name;
-          }
-        } catch {}
-      }
-
-      if (resolvedName) {
-        setNameInput(resolvedName);
-        setFoundNameMessage(`✓ Cadastro localizado: ${resolvedName}`);
-      } else {
-        setFoundNameMessage("");
-      }
-    } catch (_err) {
-      console.warn("Erro ao buscar nome pelo telefone:", _err);
-    } finally {
-      setIsLookingUpPhone(false);
-    }
-  };
-
-  const handlePhoneInputChange = (rawVal) => {
-    const formatted = formatPhone(rawVal);
+  const handlePhoneInputChange = async (value) => {
+    const formatted = formatPhone(value);
     setPhoneInput(formatted);
-    if (phoneError) setPhoneError("");
+    setPhoneError("");
 
     const clean = formatted.replace(/\D/g, "");
-    if (clean.length >= 10) {
-      lookupCustomerNameByPhone(formatted);
-    } else {
-      setFoundNameMessage("");
+    if (clean.length === 11) {
+      setIsLookingUpPhone(true);
+      try {
+        let foundName = "";
+        try {
+          const guestInfo = JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "{}");
+          if (guestInfo.customer_phone?.replace(/\D/g, '') === clean && guestInfo.customer_name) {
+            foundName = guestInfo.customer_name;
+          }
+        } catch {}
+
+        if (!foundName && isSupabaseConfigured() && supabase) {
+          const { data: orders } = await supabase
+            .from("orders")
+            .select("customer_name")
+            .ilike("customer_phone", `%${clean.slice(-8)}%`)
+            .neq("customer_name", "Cliente")
+            .order("created_date", { ascending: false })
+            .limit(1);
+          if (orders && orders[0]?.customer_name) {
+            foundName = orders[0].customer_name;
+          }
+        }
+
+        if (foundName) {
+          setNameInput(foundName);
+          setFoundNameMessage(`Encontramos seu cadastro como "${foundName}"!`);
+        }
+      } catch {}
+      setIsLookingUpPhone(false);
     }
   };
 
@@ -451,21 +460,31 @@ export default function UserProfileSheet() {
   return (
     <Sheet onOpenChange={(open) => open && loadUserData()}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full">
-          <UserIcon className="w-5 h-5" />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="text-stone-300 hover:text-white hover:bg-stone-800/80 rounded-full h-9 w-9 cursor-pointer transition-colors"
+          title="Meu Perfil"
+        >
+          <UserIcon className="w-4 h-4 text-stone-300" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-2xl font-bold text-gray-900">
+      <SheetContent className="overflow-y-auto bg-[#14100e] text-stone-100 border-l border-stone-800 p-6 scrollbar-hide">
+        <SheetHeader className="pb-3 border-b border-stone-800">
+          <SheetTitle 
+            className="text-xl sm:text-2xl font-black text-white"
+            style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+          >
             {user ? "Meu Perfil" : "Acessar Conta"}
           </SheetTitle>
         </SheetHeader>
+
         <div className="py-6">
           {user ? (
             <div className="space-y-6">
-              <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-black text-xl shadow-inner shrink-0">
+              {/* Card do Usuário Logado */}
+              <div className="flex items-center gap-4 bg-stone-900/90 p-4 rounded-2xl border border-stone-800 shadow-md">
+                <div className="w-12 h-12 bg-red-950/80 border border-red-500/40 text-red-400 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner shrink-0">
                   {user.full_name?.charAt(0)?.toUpperCase() || "C"}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -477,13 +496,13 @@ export default function UserProfileSheet() {
                           onChange={(e) => setNewName(e.target.value)}
                           placeholder="Seu nome"
                           autoFocus
-                          className="h-8 text-sm bg-white rounded-lg px-2.5"
+                          className="h-8 text-sm bg-stone-950 border-stone-700 text-white rounded-xl px-2.5"
                         />
                         <Button
                           type="submit"
                           size="sm"
                           disabled={isSavingName}
-                          className="h-8 px-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shrink-0"
+                          className="h-8 px-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl shrink-0"
                           title="Salvar nome"
                         >
                           {isSavingName ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
@@ -493,7 +512,7 @@ export default function UserProfileSheet() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setIsEditingName(false)}
-                          className="h-8 px-2 text-gray-500 hover:text-gray-800 rounded-lg shrink-0"
+                          className="h-8 px-2 text-stone-400 hover:text-white rounded-xl shrink-0"
                           title="Cancelar"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -503,7 +522,7 @@ export default function UserProfileSheet() {
                   ) : (
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-bold text-gray-900 text-base truncate">{user.full_name || "Cliente"}</p>
+                        <p className="font-extrabold text-white text-base truncate">{user.full_name || "Cliente"}</p>
                         <button
                           type="button"
                           onClick={() => {
@@ -511,12 +530,12 @@ export default function UserProfileSheet() {
                             setIsEditingName(true);
                           }}
                           title="Alterar nome"
-                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-gray-200/60 rounded-md transition-colors"
+                          className="p-1 text-stone-400 hover:text-red-400 rounded-md transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold mt-0.5">
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold mt-0.5">
                         <PhoneCall className="w-3.5 h-3.5" />
                         <span>{user.phone || "WhatsApp Conectado"}</span>
                       </div>
@@ -525,13 +544,19 @@ export default function UserProfileSheet() {
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="bg-stone-800" />
 
+              {/* Seção de Endereços */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-gray-900">Meus Endereços</h3>
-                  <Button variant="outline" size="sm" onClick={() => { setIsEditingAddress(null); setShowAddressForm(true); }}>
-                    <PlusCircle className="w-4 h-4 mr-2" />
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-black text-sm text-stone-200 uppercase tracking-wider">Meus Endereços</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => { setIsEditingAddress(null); setShowAddressForm(true); }}
+                    className="rounded-xl bg-stone-900 border-stone-800 text-stone-200 hover:bg-stone-800 text-xs font-bold"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
                     Adicionar
                   </Button>
                 </div>
@@ -544,24 +569,34 @@ export default function UserProfileSheet() {
                   />
                 )}
 
-                <div className="space-y-3 mt-4">
+                <div className="space-y-2.5 mt-3">
                   {addresses.map(addr => (
-                    <div key={addr.id} className="p-3 border rounded-lg flex justify-between items-start">
+                    <div key={addr.id} className="p-3.5 bg-stone-900/80 border border-stone-800 rounded-2xl flex justify-between items-start">
                       <div className="flex gap-3">
-                        <MapPin className="w-5 h-5 text-red-500 mt-1" />
+                        <MapPin className="w-4 h-4 text-red-500 mt-1 flex-shrink-0" />
                         <div>
-                          <p className="font-semibold">{addr.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {`${addr.street}, ${addr.number} - ${addr.city}`}
+                          <p className="font-bold text-sm text-white">{addr.name}</p>
+                          <p className="text-xs text-stone-400 mt-0.5">
+                            {`${addr.street}, ${addr.number}${addr.complement ? ` (${addr.complement})` : ''} - ${addr.neighborhood}, ${addr.city}`}
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => { setIsEditingAddress(addr); setShowAddressForm(true); }}>
-                          <Edit2 className="w-4 h-4" />
+                      <div className="flex gap-1 shrink-0">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-7 h-7 text-stone-400 hover:text-white" 
+                          onClick={() => { setIsEditingAddress(addr); setShowAddressForm(true); }}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="w-8 h-8 text-red-500" onClick={() => handleDeleteAddress(addr.id)}>
-                          <Trash2 className="w-4 h-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-7 h-7 text-stone-400 hover:text-red-400" 
+                          onClick={() => handleDeleteAddress(addr.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -569,60 +604,64 @@ export default function UserProfileSheet() {
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="bg-stone-800" />
 
+              {/* Botão Meus Pedidos */}
               <Link to={createPageUrl("MyOrders")} className="block">
-                <Button variant="outline" className="w-full">
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Meus Pedidos
+                <Button className="w-full bg-stone-900 hover:bg-stone-800 border border-stone-800 text-white font-bold rounded-2xl h-11">
+                  <ShoppingBag className="w-4 h-4 mr-2 text-red-500" />
+                  Ver Histórico de Pedidos
                 </Button>
               </Link>
 
-              <Separator />
+              <Separator className="bg-stone-800" />
 
+              {/* Cupons Disponíveis */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-4">Cupons Disponíveis</h3>
+                <h3 className="font-black text-sm text-stone-200 uppercase tracking-wider mb-3">Cupons Disponíveis</h3>
                 {availableCoupons.length > 0 ? (
                   <div className="space-y-3">
                     {availableCoupons.map(coupon => {
-                      const userUsageCount = couponUsages.filter(u => u.coupon_id === coupon.id && u.user_email === user?.email).length;
+                      const cleanPhone = (user?.phone || "").replace(/\D/g, "");
+                      const userUsageCount = couponUsages.filter(u => {
+                        if (u.coupon_id !== coupon.id) return false;
+                        const uEmail = String(u.user_email || "");
+                        const matchesPhone = cleanPhone && cleanPhone.length >= 8 && uEmail.includes(cleanPhone.slice(-8));
+                        const matchesEmail = user?.email && uEmail.toLowerCase().includes(user.email.toLowerCase());
+                        return matchesPhone || matchesEmail;
+                      }).length;
                       const isUsedUp = coupon.usage_limit && userUsageCount >= coupon.usage_limit;
                       const isExpired = coupon.end_date && new Date(coupon.end_date) < new Date();
                       const canUse = !isUsedUp && !isExpired;
                       
                       return (
-                        <div key={coupon.id} className={`p-3 border-2 border-dashed rounded-lg ${canUse ? 'border-red-200 bg-white' : 'border-gray-300 bg-gray-50 opacity-70'}`}>
+                        <div 
+                          key={coupon.id} 
+                          className={`p-3.5 border border-dashed rounded-2xl transition-all ${
+                            canUse 
+                              ? 'border-red-500/50 bg-stone-900/90' 
+                              : 'border-stone-800 bg-stone-950 opacity-60'
+                          }`}
+                        >
                           <div className="flex justify-between items-start gap-3">
                             <div className="flex items-start gap-3 flex-1">
-                              <Ticket className={`w-6 h-6 mt-1 ${canUse ? 'text-red-500' : 'text-gray-400'}`} />
+                              <Ticket className={`w-5 h-5 mt-0.5 ${canUse ? 'text-red-500' : 'text-stone-500'}`} />
                               <div className="flex-1 min-w-0">
-                                <p className={`font-bold text-sm ${canUse ? 'text-gray-900' : 'text-gray-500'}`}>{coupon.name}</p>
-                                <p className="text-xs text-gray-600 mt-1">{coupon.description}</p>
-                                <div className="mt-2 space-y-1">
-                                  {coupon.usage_limit && (
-                                    <p className="text-xs text-gray-600">
-                                      {isUsedUp ? (
-                                        <span className="text-red-600 font-semibold">✗ Cupom já utilizado ({userUsageCount}/{coupon.usage_limit})</span>
-                                      ) : (
-                                        <span>Usos: {userUsageCount}/{coupon.usage_limit}</span>
-                                      )}
-                                    </p>
-                                  )}
-                                  {coupon.end_date && (
-                                    <p className={`text-xs ${isExpired ? 'text-red-600 font-semibold' : 'text-amber-600'}`}>
-                                      {isExpired ? '✗ Expirado em' : '⏱ Válido até'}: {new Date(coupon.end_date).toLocaleDateString('pt-BR')}
-                                    </p>
-                                  )}
+                                <p className={`font-black text-sm ${canUse ? 'text-white' : 'text-stone-400'}`}>
+                                  {coupon.name}
+                                </p>
+                                <p className="text-xs text-stone-400 mt-0.5">{coupon.description}</p>
+                                <div className="mt-2 space-y-1 text-xs">
                                   {coupon.min_order_value > 0 && (
-                                    <p className="text-xs text-gray-600">
+                                    <p className="text-stone-400">
                                       Pedido mínimo: R$ {coupon.min_order_value.toFixed(2).replace('.', ',')}
                                     </p>
                                   )}
-                                  <Badge variant="outline" className={canUse ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-200 text-gray-600'}>
+                                  <span className="inline-block bg-red-950/80 border border-red-500/40 text-red-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md mt-1">
                                     {coupon.discount_type === 'percentage' 
                                       ? `${coupon.discount_value}% OFF` 
                                       : `R$ ${coupon.discount_value.toFixed(2)} OFF`}
-                                  </Badge>
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -634,9 +673,9 @@ export default function UserProfileSheet() {
                                   navigator.clipboard.writeText(coupon.code);
                                   toast.success('Código copiado!');
                                 }}
-                                className="flex items-center gap-2 shrink-0"
+                                className="flex items-center gap-1.5 shrink-0 bg-stone-950 border-stone-800 text-stone-200 hover:text-white hover:bg-stone-800 rounded-xl text-xs font-bold"
                               >
-                                <Copy className="w-3 h-3"/>
+                                <Copy className="w-3.5 h-3.5"/>
                                 {coupon.code}
                               </Button>
                             )}
@@ -646,35 +685,47 @@ export default function UserProfileSheet() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600 text-center py-4">Nenhum cupom disponível no momento.</p>
+                  <p className="text-xs text-stone-500 text-center py-4">Nenhum cupom disponível no momento.</p>
                 )}
               </div>
               
-              <Separator />
+              <Separator className="bg-stone-800" />
 
-              <Button onClick={handleLogout} variant="outline" className="w-full">
+              <Button 
+                onClick={handleLogout} 
+                variant="outline" 
+                className="w-full bg-stone-900/80 hover:bg-red-950/40 hover:text-red-400 border border-stone-800 text-stone-400 font-bold rounded-2xl h-11"
+              >
                 <LogOut className="w-4 h-4 mr-2" />
-                Sair
+                Sair da Conta
               </Button>
             </div>
           ) : (
+            /* Formulário de Identificação Rápida / Acessar Conta */
             <div className="space-y-4">
-              <div className="text-center pb-1">
-                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner border border-emerald-200">
+              <div className="text-center pb-2">
+                <div className="w-14 h-14 bg-red-950/80 border border-red-500/40 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
                   <PhoneCall className="w-7 h-7" />
                 </div>
-                <h3 className="font-bold text-lg text-gray-900">Identificação Rápida</h3>
-                <p className="text-xs text-gray-500 mt-1 max-w-[260px] mx-auto">
-                  Digite seu WhatsApp para salvar seus endereços e agilizar seus próximos pedidos!
+                <h3 
+                  className="font-black text-xl text-white tracking-tight"
+                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                >
+                  Identificação Rápida
+                </h3>
+                <p className="text-xs text-stone-400 mt-1 max-w-[280px] mx-auto leading-relaxed">
+                  Digite seu WhatsApp para carregar seus endereços e agilizar seus pedidos.
                 </p>
               </div>
 
-              <form onSubmit={handlePhoneLogin} className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+              <form onSubmit={handlePhoneLogin} className="space-y-3.5 bg-stone-900/90 p-4 rounded-2xl border border-stone-800">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="phone" className="text-xs font-bold text-gray-700">Seu WhatsApp / Celular *</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="phone" className="text-xs font-bold uppercase text-stone-300">
+                      Seu WhatsApp / Celular *
+                    </Label>
                     {isLookingUpPhone && (
-                      <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 animate-pulse">
+                      <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 animate-pulse">
                         <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando cadastro...
                       </span>
                     )}
@@ -685,17 +736,19 @@ export default function UserProfileSheet() {
                     placeholder="(11) 99999-9999"
                     value={phoneInput}
                     onChange={(e) => handlePhoneInputChange(e.target.value)}
-                    className={`mt-1 bg-white font-medium ${phoneError ? 'border-red-500' : ''}`}
+                    className={`bg-stone-950 border-stone-800 text-white placeholder:text-stone-600 rounded-xl h-11 text-base sm:text-sm font-medium ${phoneError ? 'border-red-500' : ''}`}
                     required
                   />
-                  {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
+                  {phoneError && <p className="text-xs text-red-400 mt-1 font-semibold">{phoneError}</p>}
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="name" className="text-xs font-bold text-gray-700">Seu Nome</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="name" className="text-xs font-bold uppercase text-stone-300">
+                      Seu Nome Completo
+                    </Label>
                     {foundNameMessage && (
-                      <span className="text-[10px] text-emerald-600 font-bold animate-fade-in">
+                      <span className="text-[10px] text-emerald-400 font-bold">
                         {foundNameMessage}
                       </span>
                     )}
@@ -709,25 +762,25 @@ export default function UserProfileSheet() {
                       setNameInput(e.target.value);
                       if (foundNameMessage) setFoundNameMessage("");
                     }}
-                    className={`mt-1 bg-white ${foundNameMessage ? 'border-emerald-500 ring-1 ring-emerald-400/30' : ''}`}
+                    className={`bg-stone-950 border-stone-800 text-white placeholder:text-stone-600 rounded-xl h-11 text-base sm:text-sm ${foundNameMessage ? 'border-emerald-500' : ''}`}
                   />
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    {foundNameMessage ? "Preenchido automaticamente a partir do seu histórico." : "Se já comprou antes, o nome é preenchido automaticamente."}
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    {foundNameMessage ? "Preenchido automaticamente a partir do seu histórico." : "Se já pediu antes, seu nome é recuperado automaticamente."}
                   </p>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={isSubmittingPhone || isLookingUpPhone}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 rounded-xl shadow-md flex items-center justify-center gap-2 mt-2"
+                  className="w-full bg-red-600 hover:bg-red-500 text-white font-extrabold h-11 rounded-xl shadow-lg flex items-center justify-center gap-2 mt-2 cursor-pointer transition-all"
                 >
                   <PhoneCall className="w-4 h-4" />
                   {isSubmittingPhone ? "Identificando..." : "Entrar com WhatsApp"}
                 </Button>
               </form>
 
-              <p className="text-[11px] text-gray-400 text-center">
-                🔒 Sem senhas. Seus endereços e histórico ficam salvos no seu número.
+              <p className="text-[11px] text-stone-500 text-center">
+                🔒 Sem senhas chatas. Seus endereços ficam salvos com segurança.
               </p>
             </div>
           )}

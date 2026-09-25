@@ -4,18 +4,197 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, MapPin, Truck, Store, LogIn, Plus, ArrowLeft, Loader2, Pencil, User as UserIcon, CheckCircle2, QrCode, CreditCard, Banknote, Zap } from "lucide-react";
+import { AlertCircle, MapPin, Truck, Store, Plus, ArrowLeft, Loader2, Pencil, QrCode, CreditCard, Banknote, Home, Building2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { User } from "@/entities/User";
 import { UserAddress } from "@/entities/UserAddress";
+import { Order } from "@/entities/Order";
 import { Coupon } from "@/entities/Coupon";
 import { CouponUsage } from "@/entities/CouponUsage";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+
+export const parseAddressString = (addrStr) => {
+  if (!addrStr || typeof addrStr !== 'string') return null;
+  try {
+    let street = "";
+    let number = "";
+    let complement = "";
+    let neighborhood = "";
+    let city = "";
+    let state = "MG";
+    let cep = "";
+
+    const cepMatch = addrStr.match(/\b\d{5}-?\d{3}\b/);
+    if (cepMatch) {
+      cep = cepMatch[0];
+      if (cep.length === 8 && !cep.includes("-")) {
+        cep = `${cep.slice(0, 5)}-${cep.slice(5)}`;
+      }
+    }
+
+    if (addrStr.includes(" - ")) {
+      const parts = addrStr.split(" - ");
+      const streetPart = parts[0] || "";
+      const remaining = parts.slice(1).join(" - ");
+
+      const match = streetPart.match(/^(.+?),\s*([0-9A-Za-z\s/ºª-]+?)(?:\s*\((.*?)\))?$/);
+      if (match) {
+        street = match[1].trim();
+        number = match[2].trim();
+        complement = match[3] ? match[3].trim() : "";
+      } else {
+        street = streetPart.trim();
+      }
+
+      if (remaining) {
+        const cityParts = remaining.split(",");
+        neighborhood = cityParts[0]?.trim() || "";
+        if (cityParts[1]) {
+          const cs = cityParts[1].split("/");
+          city = cs[0]?.trim() || "";
+          state = cs[1]?.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || "MG";
+        }
+      }
+    } else if (addrStr.includes(",")) {
+      const commaParts = addrStr.split(",").map(p => p.trim());
+      street = commaParts[0] || "";
+      number = commaParts[1] || "";
+      neighborhood = commaParts[2] || "";
+      city = commaParts[3] || "";
+    } else {
+      street = addrStr.trim();
+    }
+
+    return { street, number, complement, neighborhood, city: city || "Contagem", state: state || "MG", cep };
+  } catch {
+    return null;
+  }
+};
+
+export const fetchCustomerAddresses = async (phone, email) => {
+  const cleanPhone = (phone || "").replace(/\D/g, "");
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const addressList = [];
+  const seenKeys = new Set();
+
+  const addUnique = (addr) => {
+    if (!addr) return;
+    const streetClean = (addr.street || '').trim();
+    const numClean = (addr.number || '').trim();
+    if (!streetClean) return;
+    const key = `${streetClean.toLowerCase()}_${numClean.toLowerCase()}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      addressList.push({
+        id: String(addr.id || `addr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
+        name: addr.name || (addressList.length === 0 ? "Casa" : `Endereço ${addressList.length + 1}`),
+        street: streetClean,
+        number: numClean || "S/N",
+        complement: (addr.complement || '').trim(),
+        neighborhood: (addr.neighborhood || '').trim(),
+        city: (addr.city || 'Contagem').trim(),
+        state: (addr.state || 'MG').trim().toUpperCase(),
+        cep: (addr.cep || addr.zip_code || '').trim(),
+        is_default: addr.is_default !== undefined ? addr.is_default : addressList.length === 0,
+        user_phone: addr.user_phone || phone || "",
+        user_email: addr.user_email || email || ""
+      });
+    }
+  };
+
+  // 1. Tentar UserAddress entity
+  try {
+    const allAddrs = await UserAddress.list();
+    (allAddrs || []).forEach(a => {
+      const cleanAddrPhone = (a.user_phone || "").replace(/\D/g, "");
+      if (
+        (cleanEmail && a.user_email && a.user_email.toLowerCase() === cleanEmail) ||
+        (cleanPhone && cleanAddrPhone && cleanAddrPhone.slice(-8) === cleanPhone.slice(-8))
+      ) {
+        addUnique(a);
+      }
+    });
+  } catch {}
+
+  // 2. Tentar Supabase direto na tabela user_addresses
+  if (isSupabaseConfigured() && supabase) {
+    if (cleanPhone || cleanEmail) {
+      try {
+        let query = supabase.from("user_addresses").select("*");
+        if (cleanPhone && cleanEmail) {
+          query = query.or(`user_phone.ilike.%${cleanPhone.slice(-8)}%,user_email.ilike.%${cleanEmail}%`);
+        } else if (cleanPhone) {
+          query = query.ilike("user_phone", `%${cleanPhone.slice(-8)}%`);
+        } else if (cleanEmail) {
+          query = query.ilike("user_email", `%${cleanEmail}%`);
+        }
+        const { data: dbAddrs } = await query;
+        if (dbAddrs && dbAddrs.length > 0) {
+          dbAddrs.forEach(addUnique);
+        }
+      } catch {}
+    }
+
+    // 3. Se ainda não achou, buscar em pedidos anteriores no Supabase
+    if (addressList.length === 0 && cleanPhone) {
+      try {
+        const { data: orderData } = await supabase
+          .from("orders")
+          .select("delivery_address,customer_address,created_date")
+          .ilike("customer_phone", `%${cleanPhone.slice(-8)}%`)
+          .order("created_date", { ascending: false })
+          .limit(5);
+
+        if (orderData && orderData.length > 0) {
+          for (const ord of orderData) {
+            const rawAddr = ord.delivery_address || ord.customer_address;
+            if (rawAddr) {
+              const parsed = parseAddressString(rawAddr);
+              if (parsed && parsed.street) {
+                addUnique({ ...parsed, name: "Casa" });
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // 4. Fallback em memória (Order.list)
+  if (addressList.length === 0 && cleanPhone) {
+    try {
+      const allOrders = await Order.list("-created_date");
+      const matchedOrders = (allOrders || []).filter(o =>
+        o.customer_phone && o.customer_phone.replace(/\D/g, "").slice(-8) === cleanPhone.slice(-8)
+      );
+      matchedOrders.forEach(ord => {
+        const rawAddr = ord.delivery_address || ord.customer_address;
+        if (rawAddr) {
+          const parsed = parseAddressString(rawAddr);
+          if (parsed && parsed.street) {
+            addUnique({ ...parsed, name: "Casa" });
+          }
+        }
+      });
+    } catch {}
+  }
+
+  // 5. Fallback localStorage guest info
+  if (addressList.length === 0) {
+    try {
+      const guestInfo = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "null") : null;
+      if (guestInfo?.addressForm?.street) {
+        addUnique({ ...guestInfo.addressForm, name: guestInfo.addressForm.name || "Casa" });
+      }
+    } catch {}
+  }
+
+  return addressList;
+};
 
 export default function OrderModal({ 
   isOpen, 
@@ -33,14 +212,14 @@ export default function OrderModal({
   const [selectedAddress, setSelectedAddress] = useState("");
   const [isCreatingNewAddress, setIsCreatingNewAddress] = useState(false);
   const [newAddressForm, setNewAddressForm] = useState({
-    name: "Outro Endereço",
+    name: "",
     cep: "",
     street: "",
     number: "",
     complement: "",
     neighborhood: "",
-    city: "",
-    state: "",
+    city: "Contagem",
+    state: "MG",
     save_address: true,
   });
   const [isFetchingCep, setIsFetchingCep] = useState(false);
@@ -84,64 +263,59 @@ export default function OrderModal({
 
   useEffect(() => {
     const loadUser = async () => {
+      let userData = null;
       try {
-        const userData = await base44.auth.me();
-        setUser(userData);
-        if (userData) {
-          setCustomerData(prev => ({
-            ...prev,
-            customer_name: userData.full_name || prev.customer_name || "",
-            customer_phone: userData.phone || prev.customer_phone || "",
-            customer_email: userData.email || prev.customer_email || ""
-          }));
-
-          if (userData?.email || userData?.phone) {
-            const allAddrs = await UserAddress.list();
-            const userAddresses = (allAddrs || []).filter(a => 
-              (userData.email && a.user_email === userData.email) || 
-              (userData.phone && a.user_phone === userData.phone)
-            );
-            setAddresses(userAddresses || []);
-            const defaultAddress = userAddresses.find(addr => addr.is_default) || userAddresses[0];
-            if (defaultAddress) {
-              setSelectedAddress(defaultAddress.id);
-              setIsCreatingNewAddress(false);
-            } else {
-              setIsCreatingNewAddress(true);
-            }
-          }
-        } else {
-          setUser(null);
+        userData = await User.me();
+        if (!userData) {
+          try {
+            userData = await base44.auth.me();
+          } catch {}
         }
       } catch {
-        setUser(null);
+        userData = null;
       }
 
-      // Se for cliente sem login, carregar dados da última compra salvos no aparelho ou buscar no banco
-      try {
-        const savedGuestInfo = JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "null");
-        const savedPhone = localStorage.getItem("vrumburguer_customer_phone");
-        if (savedGuestInfo) {
-          setCustomerData(prev => ({
+      const savedGuestInfo = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "null") : null;
+      const savedPhone = typeof window !== "undefined" ? localStorage.getItem("vrumburguer_customer_phone") : null;
+
+      const effectivePhone = userData?.phone || savedGuestInfo?.customer_phone || savedPhone || "";
+      const effectiveName = userData?.full_name || savedGuestInfo?.customer_name || "";
+      const effectiveEmail = userData?.email || savedGuestInfo?.customer_email || "";
+
+      if (userData) {
+        setUser(userData);
+      }
+
+      if (effectiveName || effectivePhone || effectiveEmail) {
+        setCustomerData(prev => ({
+          ...prev,
+          customer_name: effectiveName && effectiveName !== "Cliente" ? effectiveName : prev.customer_name || "",
+          customer_phone: effectivePhone ? formatPhone(effectivePhone) : prev.customer_phone || "",
+          customer_email: effectiveEmail || prev.customer_email || ""
+        }));
+
+        const userAddrs = await fetchCustomerAddresses(effectivePhone, effectiveEmail);
+        if (userAddrs && userAddrs.length > 0) {
+          setAddresses(userAddrs);
+          const defaultAddress = userAddrs.find(addr => addr.is_default) || userAddrs[0];
+          setSelectedAddress(defaultAddress.id);
+          setIsCreatingNewAddress(false);
+          setNewAddressForm(prev => ({
             ...prev,
-            customer_name: savedGuestInfo.customer_name || prev.customer_name || "",
-            customer_phone: savedGuestInfo.customer_phone || (savedPhone ? formatPhone(savedPhone) : "") || prev.customer_phone || "",
-            customer_email: savedGuestInfo.customer_email || prev.customer_email || ""
+            name: "",
+            city: defaultAddress.city || prev.city || "Contagem",
+            state: defaultAddress.state || prev.state || "MG"
           }));
-          if (savedGuestInfo.addressForm) {
+        } else {
+          setAddresses([]);
+          setIsCreatingNewAddress(true);
+          if (savedGuestInfo?.addressForm) {
             setNewAddressForm(prev => ({ ...prev, ...savedGuestInfo.addressForm }));
           }
-          if ((!savedGuestInfo.customer_name || savedGuestInfo.customer_name === "Cliente") && (savedGuestInfo.customer_phone || savedPhone)) {
-            lookupCustomerByPhone(savedGuestInfo.customer_phone || savedPhone);
-          }
-        } else if (savedPhone) {
-          setCustomerData(prev => ({
-            ...prev,
-            customer_phone: formatPhone(savedPhone)
-          }));
-          lookupCustomerByPhone(savedPhone);
         }
-      } catch {}
+
+        setShowCustomerConfirm(false);
+      }
     };
 
     if (isOpen) {
@@ -149,7 +323,6 @@ export default function OrderModal({
       setCouponCode("");
       setAppliedCoupon(null);
       setCouponError("");
-      setIsCreatingNewAddress(false);
     }
   }, [isOpen]);
 
@@ -213,9 +386,20 @@ export default function OrderModal({
     if (!coupon) { setCouponError("Cupom inválido ou inativo."); return; }
     if (coupon.end_date && new Date(coupon.end_date) < new Date()) { setCouponError("Este cupom expirou."); return; }
 
-    if (coupon.usage_limit && user?.email) {
-      const userUsages = await CouponUsage.filter({ coupon_id: coupon.id, user_email: user.email });
-      if (userUsages.length >= coupon.usage_limit) { setCouponError("Você já atingiu o limite de uso deste cupom."); return; }
+    const cleanPhone = (customerData.customer_phone || user?.phone || "").replace(/\D/g, "");
+    if (coupon.usage_limit && (cleanPhone || user?.email)) {
+      const allUsages = await CouponUsage.list();
+      const userUsages = (allUsages || []).filter(u => {
+        if (u.coupon_id !== coupon.id) return false;
+        const uEmail = String(u.user_email || "");
+        const matchesPhone = cleanPhone && cleanPhone.length >= 8 && uEmail.includes(cleanPhone.slice(-8));
+        const matchesEmail = user?.email && uEmail.toLowerCase().includes(user.email.toLowerCase());
+        return matchesPhone || matchesEmail;
+      });
+      if (userUsages.length >= coupon.usage_limit) {
+        setCouponError("Você já atingiu o limite de uso deste cupom para seu número de WhatsApp.");
+        return;
+      }
     }
 
     const totalWithDelivery = orderType === 'delivery' ? subtotal + deliveryFee : subtotal;
@@ -349,6 +533,13 @@ export default function OrderModal({
     try {
       if (customerData.customer_phone) {
         localStorage.setItem("vrumburguer_customer_phone", customerData.customer_phone);
+        const finalName = customerData.customer_name?.trim() || "";
+        if (finalName && finalName !== "Cliente") {
+          try {
+            const logged = await User.loginWithPhone(customerData.customer_phone, finalName);
+            if (logged) setUser(logged);
+          } catch {}
+        }
       }
       localStorage.setItem("vrumburguer_guest_info", JSON.stringify({
         customer_name: customerData.customer_name,
@@ -369,7 +560,7 @@ export default function OrderModal({
         if (!existing) {
           await UserAddress.create({
             user_phone: customerData.customer_phone,
-            user_email: customerData.customer_email || `cliente_${cleanPhone}@cliente.vrumburguer.com`,
+            user_email: customerData.customer_email || "",
             name: newAddressForm.name || "Endereço de Entrega",
             street: newAddressForm.street,
             number: newAddressForm.number,
@@ -404,67 +595,6 @@ export default function OrderModal({
     return `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7)}`;
   };
 
-  const parseAddressString = (addrStr) => {
-    if (!addrStr || typeof addrStr !== 'string') return null;
-    try {
-      let street = "";
-      let number = "";
-      let complement = "";
-      let neighborhood = "";
-      let city = "";
-      let state = "MG";
-      let cep = "";
-
-      // Extrair CEP se presente
-      const cepMatch = addrStr.match(/\b\d{5}-?\d{3}\b/);
-      if (cepMatch) {
-        cep = cepMatch[0];
-        if (cep.length === 8 && !cep.includes("-")) {
-          cep = `${cep.slice(0, 5)}-${cep.slice(5)}`;
-        }
-      }
-
-      // Padrão: "Rua X, 123 (Apto 4) - Bairro, Cidade/UF"
-      if (addrStr.includes(" - ")) {
-        const parts = addrStr.split(" - ");
-        const streetPart = parts[0] || "";
-        const remaining = parts.slice(1).join(" - ");
-
-        const match = streetPart.match(/^(.+?),\s*([0-9A-Za-z\s/ºª-]+?)(?:\s*\((.*?)\))?$/);
-        if (match) {
-          street = match[1].trim();
-          number = match[2].trim();
-          complement = match[3] ? match[3].trim() : "";
-        } else {
-          street = streetPart.trim();
-        }
-
-        if (remaining) {
-          const cityParts = remaining.split(",");
-          neighborhood = cityParts[0]?.trim() || "";
-          if (cityParts[1]) {
-            const cs = cityParts[1].split("/");
-            city = cs[0]?.trim() || "";
-            state = cs[1]?.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || "MG";
-          }
-        }
-      } else if (addrStr.includes(",")) {
-        // Padrão: "Rua X, 123, Bairro, Cidade"
-        const commaParts = addrStr.split(",").map(p => p.trim());
-        street = commaParts[0] || "";
-        number = commaParts[1] || "";
-        neighborhood = commaParts[2] || "";
-        city = commaParts[3] || "";
-      } else {
-        street = addrStr.trim();
-      }
-
-      return { street, number, complement, neighborhood, city, state: state || "MG", cep };
-    } catch {
-      return null;
-    }
-  };
-
   const lookupCustomerByPhone = async (phoneStr) => {
     if (!phoneStr) return;
     const cleanDigits = phoneStr.replace(/\D/g, "");
@@ -480,13 +610,9 @@ export default function OrderModal({
     try {
       let foundName = "";
       let foundEmail = "";
-      let foundAddress = "";
-      let phoneAddrs = [];
-      let parsedAddress = null;
 
-      // 1. Tentar Banco de Dados Supabase (se configurado)
+      // 1. Tentar obter nome do cliente no Supabase (RPC ou users ou orders)
       if (isSupabaseConfigured() && supabase) {
-        // 1.1 RPC
         try {
           const { data, error } = await supabase.rpc("lookup_customer_by_phone", {
             p_phone: phoneStr
@@ -495,11 +621,9 @@ export default function OrderModal({
             const client = data[0];
             if (client.customer_name && client.customer_name !== "Cliente") foundName = client.customer_name;
             if (client.customer_email) foundEmail = client.customer_email;
-            if (client.delivery_address) foundAddress = client.delivery_address;
           }
         } catch {}
 
-        // 1.2 Tabela users
         if (!foundName) {
           try {
             const { data: userData } = await supabase
@@ -514,73 +638,40 @@ export default function OrderModal({
           } catch {}
         }
 
-        // 1.3 Tabela user_addresses
-        try {
-          const { data: dbAddrs } = await supabase
-            .from("user_addresses")
-            .select("*")
-            .or(`user_phone.ilike.%${cleanDigits.slice(-8)}%,user_email.ilike.%${cleanDigits.slice(-8)}%`);
-          if (dbAddrs && dbAddrs.length > 0) {
-            phoneAddrs = dbAddrs;
-          }
-        } catch {}
-
-        // 1.4 Tabela orders (pega nome e endereço mais recente)
-        if (!foundName || (!foundAddress && phoneAddrs.length === 0)) {
+        if (!foundName) {
           try {
             const { data: orderData } = await supabase
               .from("orders")
-              .select("customer_name,customer_email,delivery_address,customer_address")
+              .select("customer_name,customer_email")
               .ilike("customer_phone", `%${cleanDigits.slice(-8)}%`)
               .order("created_date", { ascending: false })
               .limit(3);
             if (orderData && orderData.length > 0) {
               const bestOrder = orderData.find(o => o.customer_name && o.customer_name !== "Cliente") || orderData[0];
-              if (!foundName && bestOrder.customer_name && bestOrder.customer_name !== "Cliente") {
+              if (bestOrder.customer_name && bestOrder.customer_name !== "Cliente") {
                 foundName = bestOrder.customer_name;
               }
               if (!foundEmail && bestOrder.customer_email) {
                 foundEmail = bestOrder.customer_email;
-              }
-              const addr = bestOrder.delivery_address || bestOrder.customer_address;
-              if (!foundAddress && addr) {
-                foundAddress = addr;
               }
             }
           } catch {}
         }
       }
 
-      // 2. Fallbacks em memória / local storage
-      if (phoneAddrs.length === 0) {
-        try {
-          const allAddrs = await UserAddress.list();
-          phoneAddrs = (allAddrs || []).filter(a => 
-            (a.user_phone && a.user_phone.replace(/\D/g, "").slice(-8) === cleanDigits.slice(-8)) ||
-            (foundEmail && a.user_email === foundEmail)
-          );
-        } catch {}
-      }
-
-      if (!foundName || !foundAddress) {
+      // 2. Fallbacks de nome em memória / local storage
+      if (!foundName) {
         try {
           const allOrders = await Order.list("-created_date");
           const matchOrder = (allOrders || []).find(o => 
             o.customer_phone && o.customer_phone.replace(/\D/g, "").slice(-8) === cleanDigits.slice(-8)
           );
-          if (matchOrder) {
-            if (!foundName && matchOrder.customer_name && matchOrder.customer_name !== "Cliente") {
-              foundName = matchOrder.customer_name;
-            }
-            const oAddr = matchOrder.delivery_address || matchOrder.customer_address;
-            if (!foundAddress && oAddr) {
-              foundAddress = oAddr;
-            }
+          if (matchOrder && matchOrder.customer_name && matchOrder.customer_name !== "Cliente") {
+            foundName = matchOrder.customer_name;
           }
         } catch {}
       }
 
-      // 3. Fallback do localStorage do próprio aparelho
       try {
         const guestInfo = JSON.parse(localStorage.getItem("vrumburguer_guest_info") || "null");
         if (guestInfo) {
@@ -589,14 +680,13 @@ export default function OrderModal({
             if (!foundName && guestInfo.customer_name && guestInfo.customer_name !== "Cliente") {
               foundName = guestInfo.customer_name;
             }
-            if (guestInfo.addressForm && guestInfo.addressForm.street && !foundAddress && phoneAddrs.length === 0) {
-              parsedAddress = guestInfo.addressForm;
+            if (!foundEmail && guestInfo.customer_email) {
+              foundEmail = guestInfo.customer_email;
             }
           }
         }
       } catch {}
 
-      // 4. Preencher Nome do Cliente
       if (foundName) {
         setCustomerData(prev => ({
           ...prev,
@@ -605,72 +695,44 @@ export default function OrderModal({
         }));
       }
 
-      // 5. Preencher Endereço no Formulário e na Lista
+      // 3. Buscar endereços cadastrados desse telefone/email
+      const resolvedAddrs = await fetchCustomerAddresses(phoneStr, foundEmail);
       let resolvedAddressString = "";
-      if (phoneAddrs.length > 0) {
-        setAddresses(phoneAddrs);
-        const defaultAddr = phoneAddrs.find(a => a.is_default) || phoneAddrs[0];
+
+      if (resolvedAddrs && resolvedAddrs.length > 0) {
+        setAddresses(resolvedAddrs);
+        const defaultAddr = resolvedAddrs.find(a => a.is_default) || resolvedAddrs[0];
         if (defaultAddr) {
           setSelectedAddress(defaultAddr.id);
           setIsCreatingNewAddress(false);
-          setNewAddressForm({
-            name: defaultAddr.name || "Meu Endereço",
-            street: defaultAddr.street || "",
-            number: defaultAddr.number || "",
-            neighborhood: defaultAddr.neighborhood || "",
-            city: defaultAddr.city || "Contagem",
-            state: defaultAddr.state || "MG",
-            complement: defaultAddr.complement || "",
-            reference: defaultAddr.reference || "",
-            cep: defaultAddr.cep || defaultAddr.zip_code || "",
-            save_address: true,
-          });
+          setNewAddressForm(prev => ({
+            ...prev,
+            name: "",
+            city: defaultAddr.city || prev.city || "Contagem",
+            state: defaultAddr.state || prev.state || "MG"
+          }));
           resolvedAddressString = `${defaultAddr.street}, ${defaultAddr.number}${defaultAddr.complement ? ` (${defaultAddr.complement})` : ''} - ${defaultAddr.neighborhood}, ${defaultAddr.city}/${defaultAddr.state || 'MG'}`;
           setManualAddress(resolvedAddressString);
         }
-      } else if (foundAddress) {
-        resolvedAddressString = foundAddress;
-        setManualAddress(foundAddress);
-        const parsed = parseAddressString(foundAddress);
-        if (parsed && parsed.street) {
-          parsedAddress = parsed;
-          setNewAddressForm(prev => ({
-            ...prev,
-            street: parsed.street || prev.street,
-            number: parsed.number || prev.number,
-            neighborhood: parsed.neighborhood || prev.neighborhood,
-            city: parsed.city || prev.city,
-            state: parsed.state || prev.state,
-            complement: parsed.complement || prev.complement,
-            cep: parsed.cep || prev.cep,
-          }));
-        }
-      } else if (parsedAddress) {
-        setNewAddressForm(prev => ({
-          ...prev,
-          ...parsedAddress
-        }));
-        resolvedAddressString = `${parsedAddress.street}, ${parsedAddress.number} - ${parsedAddress.neighborhood}, ${parsedAddress.city}`;
       }
 
-      // 6. Login Automático com o Telefone
+      // 4. Login Automático com o Telefone
       try {
-        const logged = await User.loginWithPhone(phoneStr, foundName || customerData.customer_name || "Cliente");
+        const nameToUse = foundName || (customerData.customer_name && customerData.customer_name !== "Cliente" ? customerData.customer_name : "");
+        const logged = await User.loginWithPhone(phoneStr, nameToUse);
         if (logged) setUser(logged);
       } catch {}
 
-      // 7. Se encontramos dados prévios (nome ou endereço), abrir modal de confirmação
-      if (foundName || resolvedAddressString || phoneAddrs.length > 0) {
-        setPhoneLookupFeedback(`✓ Conectado como ${foundName || 'Cliente'}!`);
-        setCustomerModalData({
-          name: foundName || customerData.customer_name || "Cliente",
-          phone: phoneStr,
-          addressString: resolvedAddressString || (newAddressForm.street ? `${newAddressForm.street}, ${newAddressForm.number} - ${newAddressForm.neighborhood}, ${newAddressForm.city}` : "")
-        });
-        setShowCustomerConfirm(true);
+      // 5. Feedback visual de cadastro encontrado
+      if (resolvedAddrs.length > 0) {
+        const defaultAddr = resolvedAddrs.find(a => a.is_default) || resolvedAddrs[0];
+        setPhoneLookupFeedback(`✓ Endereço "${defaultAddr.name || 'Casa'}" carregado!`);
+      } else if (foundName) {
+        setPhoneLookupFeedback(`✓ Conectado como ${foundName}!`);
       } else {
         setPhoneLookupFeedback("✓ Número verificado!");
       }
+      setShowCustomerConfirm(false);
     } catch (_err) {
       console.warn("Erro ao buscar dados do cliente por telefone:", _err);
     } finally {
@@ -682,6 +744,18 @@ export default function OrderModal({
     const finalValue = field === 'customer_phone' ? formatPhone(value) : value;
     setCustomerData(prev => ({ ...prev, [field]: finalValue }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }));
+
+    if (field === 'customer_name') {
+      const cleanName = typeof value === "string" ? value.trim() : "";
+      if (cleanName && cleanName !== "Cliente") {
+        const phone = customerData.customer_phone;
+        if (phone && phone.replace(/\D/g, "").length >= 10) {
+          User.loginWithPhone(phone, cleanName).then(logged => {
+            if (logged) setUser(logged);
+          }).catch(() => {});
+        }
+      }
+    }
 
     if (field === 'customer_phone') {
       const digits = finalValue.replace(/\D/g, "");
@@ -809,15 +883,31 @@ export default function OrderModal({
 
               {/* Se o cliente tiver endereços salvos e não estiver cadastrando outro */}
               {addresses.length > 0 && !isCreatingNewAddress ? (
-                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <Label className="text-xs font-bold uppercase text-gray-700">Endereço de entrega *</Label>
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200/90 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-red-600" />
+                      <Label className="text-xs font-bold uppercase text-gray-800">Endereço de Entrega</Label>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setIsCreatingNewAddress(true)}
-                      className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      onClick={() => {
+                        setIsCreatingNewAddress(true);
+                        setNewAddressForm({
+                          name: "",
+                          cep: "",
+                          street: "",
+                          number: "",
+                          complement: "",
+                          neighborhood: "",
+                          city: addresses[0]?.city || "Contagem",
+                          state: addresses[0]?.state || "MG",
+                          save_address: true,
+                        });
+                      }}
+                      className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer transition-colors bg-red-50 hover:bg-red-100/80 px-2.5 py-1 rounded-xl"
                     >
-                      <Plus className="w-3.5 h-3.5" /> + Outro Endereço
+                      <Plus className="w-3.5 h-3.5" /> Outro Endereço
                     </button>
                   </div>
 
@@ -826,30 +916,55 @@ export default function OrderModal({
                     onValueChange={(val) => {
                       if (val === "new_address") {
                         setIsCreatingNewAddress(true);
+                        setNewAddressForm({
+                          name: "",
+                          cep: "",
+                          street: "",
+                          number: "",
+                          complement: "",
+                          neighborhood: "",
+                          city: addresses[0]?.city || "Contagem",
+                          state: addresses[0]?.state || "MG",
+                          save_address: true,
+                        });
                       } else {
                         setSelectedAddress(val);
                       }
                     }}
                   >
-                    <SelectTrigger className={`rounded-xl h-auto py-2.5 bg-white ${errors.address ? "border-red-500" : "border-stone-200"}`}>
-                      <SelectValue placeholder="Selecione um endereço" />
+                    <SelectTrigger className={`rounded-2xl h-auto py-3 px-3.5 bg-white border text-left shadow-xs ${errors.address ? "border-red-500" : "border-stone-200 hover:border-stone-300"}`}>
+                      <SelectValue placeholder="Selecione o endereço" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
+                    <SelectContent className="rounded-2xl shadow-xl">
                       {addresses.map((address) => (
-                        <SelectItem key={address.id} value={address.id} className="py-2 cursor-pointer">
+                        <SelectItem key={address.id} value={address.id} className="py-2.5 px-3 cursor-pointer rounded-xl">
                           <div className="flex items-start gap-2.5 text-left">
-                            <MapPin className="w-4 h-4 mt-0.5 text-red-600 flex-shrink-0" />
+                            <div className="p-1.5 rounded-lg bg-red-50 text-red-600 shrink-0 mt-0.5">
+                              {address.name?.toLowerCase().includes("trabalho") ? (
+                                <Building2 className="w-4 h-4" />
+                              ) : (
+                                <Home className="w-4 h-4" />
+                              )}
+                            </div>
                             <div>
-                              <p className="font-bold text-sm text-gray-900">{address.name || "Endereço"}</p>
-                              <p className="text-xs text-gray-500 line-clamp-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-gray-900">{address.name || "Casa"}</span>
+                                {address.is_default && (
+                                  <span className="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.2 rounded-full">Padrão</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-600 font-medium">
                                 {address.street}, {address.number}{address.complement ? ` (${address.complement})` : ''} - {address.neighborhood}
+                              </p>
+                              <p className="text-[11px] text-gray-400">
+                                {address.city}/{address.state || 'MG'} {address.cep ? `• CEP ${address.cep}` : ''}
                               </p>
                             </div>
                           </div>
                         </SelectItem>
                       ))}
 
-                      <SelectItem value="new_address" className="border-t mt-1 font-bold text-red-600 bg-red-50/60 focus:bg-red-50 focus:text-red-700 py-2.5 cursor-pointer">
+                      <SelectItem value="new_address" className="border-t mt-1 font-bold text-red-600 bg-red-50/60 focus:bg-red-50 focus:text-red-700 py-2.5 cursor-pointer rounded-xl">
                         <div className="flex items-center gap-2">
                           <Plus className="w-4 h-4 text-red-600" />
                           <span>+ Cadastrar outro endereço</span>
@@ -857,26 +972,50 @@ export default function OrderModal({
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreatingNewAddress(true);
+                      setNewAddressForm({
+                        name: "",
+                        cep: "",
+                        street: "",
+                        number: "",
+                        complement: "",
+                        neighborhood: "",
+                        city: addresses[0]?.city || "Contagem",
+                        state: addresses[0]?.state || "MG",
+                        save_address: true,
+                      });
+                    }}
+                    className="w-full text-center text-xs text-stone-500 hover:text-red-600 py-1 flex items-center justify-center gap-1 font-medium transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Quero receber em outro lugar neste pedido
+                  </button>
+
+                  {errors.address && <p className="text-red-500 text-xs mt-1 font-medium">{errors.address}</p>}
                 </div>
               ) : (
                 // Formulário estruturado com CEP (padrão para todos os clientes sem login ou com novo endereço)
-                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3">
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3 shadow-xs">
                   <div className="flex items-center justify-between pb-1 border-b border-stone-200">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-red-600" />
-                      <span className="font-bold text-sm text-gray-900">Endereço de Entrega</span>
+                      <span className="font-bold text-sm text-gray-900">
+                        {addresses.length > 0 ? "Outro Endereço de Entrega" : "Endereço de Entrega"}
+                      </span>
                     </div>
                     {addresses.length > 0 && (
                       <button
                         type="button"
                         onClick={() => {
                           setIsCreatingNewAddress(false);
-                          if (addresses.length > 0) setSelectedAddress(addresses[0].id);
+                          if (addresses.length > 0 && !selectedAddress) setSelectedAddress(addresses[0].id);
                         }}
-                        className="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer bg-white px-2.5 py-1 rounded-xl border border-stone-200 shadow-xs transition-colors"
                       >
-                        <ArrowLeft className="w-3.5 h-3.5" /> Usar Salvo
+                        <ArrowLeft className="w-3.5 h-3.5" /> Usar Salvo ({addresses.find(a => a.id === selectedAddress)?.name || addresses[0]?.name || "Casa"})
                       </button>
                     )}
                   </div>
@@ -1057,78 +1196,48 @@ export default function OrderModal({
           {/* 3º BLOCO: FORMA DE PAGAMENTO E OBSERVAÇÕES */}
           <div className="space-y-3 pt-1">
             <div>
-              <Label className="text-xs font-bold uppercase text-gray-700 mb-1.5 block">Forma de pagamento *</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <Label className="text-xs font-bold uppercase text-gray-700 mb-2 block">Forma de pagamento *</Label>
+              <div className="grid grid-cols-3 gap-2.5">
                 {/* Opção PIX */}
                 <button
                   type="button"
                   onClick={() => handleInputChange('payment_method', 'pix')}
-                  className={`relative p-3 rounded-2xl border text-left flex flex-col justify-between gap-1.5 transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
                     customerData.payment_method === 'pix'
-                      ? 'border-emerald-600 bg-emerald-50/90 ring-2 ring-emerald-500/30 text-emerald-950 shadow-sm'
-                      : 'border-stone-200 bg-white hover:border-stone-300 text-stone-700'
+                      ? 'border-emerald-600 bg-emerald-50/90 ring-2 ring-emerald-500/30 text-emerald-950 font-black shadow-sm'
+                      : 'border-stone-200 bg-white hover:border-stone-400 text-stone-700 font-bold'
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xl">📱</span>
-                    {customerData.payment_method === 'pix' && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-bold text-xs sm:text-sm leading-tight">PIX</p>
-                    <span className="text-[10px] text-emerald-700 font-semibold block leading-tight mt-0.5">
-                      Mais rápido ⚡
-                    </span>
-                  </div>
+                  <QrCode className={`w-5 h-5 ${customerData.payment_method === 'pix' ? 'text-emerald-600' : 'text-stone-600'}`} />
+                  <span className="text-xs sm:text-sm tracking-tight">PIX</span>
                 </button>
 
                 {/* Opção Cartão */}
                 <button
                   type="button"
                   onClick={() => handleInputChange('payment_method', 'cartao')}
-                  className={`relative p-3 rounded-2xl border text-left flex flex-col justify-between gap-1.5 transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
                     customerData.payment_method === 'cartao'
-                      ? 'border-blue-600 bg-blue-50/90 ring-2 ring-blue-500/30 text-blue-950 shadow-sm'
-                      : 'border-stone-200 bg-white hover:border-stone-300 text-stone-700'
+                      ? 'border-red-600 bg-red-50/90 ring-2 ring-red-500/30 text-red-950 font-black shadow-sm'
+                      : 'border-stone-200 bg-white hover:border-stone-400 text-stone-700 font-bold'
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xl">💳</span>
-                    {customerData.payment_method === 'cartao' && (
-                      <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-bold text-xs sm:text-sm leading-tight">Cartão</p>
-                    <span className="text-[10px] text-stone-500 block leading-tight mt-0.5">
-                      Na entrega/balcão
-                    </span>
-                  </div>
+                  <CreditCard className={`w-5 h-5 ${customerData.payment_method === 'cartao' ? 'text-red-600' : 'text-stone-600'}`} />
+                  <span className="text-xs sm:text-sm tracking-tight">Cartão</span>
                 </button>
 
                 {/* Opção Dinheiro */}
                 <button
                   type="button"
                   onClick={() => handleInputChange('payment_method', 'dinheiro')}
-                  className={`relative p-3 rounded-2xl border text-left flex flex-col justify-between gap-1.5 transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
                     customerData.payment_method === 'dinheiro'
-                      ? 'border-amber-600 bg-amber-50/90 ring-2 ring-amber-500/30 text-amber-950 shadow-sm'
-                      : 'border-stone-200 bg-white hover:border-stone-300 text-stone-700'
+                      ? 'border-amber-600 bg-amber-50/90 ring-2 ring-amber-500/30 text-amber-950 font-black shadow-sm'
+                      : 'border-stone-200 bg-white hover:border-stone-400 text-stone-700 font-bold'
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xl">💵</span>
-                    {customerData.payment_method === 'dinheiro' && (
-                      <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-bold text-xs sm:text-sm leading-tight">Dinheiro</p>
-                    <span className="text-[10px] text-stone-500 block leading-tight mt-0.5">
-                      Com/sem troco
-                    </span>
-                  </div>
+                  <Banknote className={`w-5 h-5 ${customerData.payment_method === 'dinheiro' ? 'text-amber-600' : 'text-stone-600'}`} />
+                  <span className="text-xs sm:text-sm tracking-tight">Dinheiro</span>
                 </button>
               </div>
 

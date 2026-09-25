@@ -140,9 +140,10 @@ export default function OrdersPage() {
         }
       }
 
-      // Inicializa os IDs de pedidos pendentes conhecidos
-      const pendingIds = safeOrders.filter(o => o.status === 'pendente').map(o => o.id);
-      knownPendingIds.current = new Set(pendingIds);
+      // Inicializa os IDs de pedidos pendentes conhecidos e ativa som contínuo se houver pendentes
+      const pendingOrders = safeOrders.filter(o => o.status === 'pendente');
+      soundAlert.setPendingCount(pendingOrders.length);
+      knownPendingIds.current = new Set(pendingOrders.map(o => o.id));
       isFirstLoad.current = false;
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
@@ -159,15 +160,10 @@ export default function OrdersPage() {
       const safeOrders = Array.isArray(ordersData) ? ordersData : [];
       setOrders(safeOrders);
 
-      // Checa se há novos pedidos pendentes que não estavam antes
-      const currentPendingIds = safeOrders.filter(o => o.status === 'pendente').map(o => o.id);
-      if (!isFirstLoad.current) {
-        const hasNewPending = currentPendingIds.some(id => !knownPendingIds.current.has(id));
-        if (hasNewPending) {
-          soundAlert.playOrderChime();
-        }
-      }
-      knownPendingIds.current = new Set(currentPendingIds);
+      // Checa pedidos pendentes e atualiza o alarme sonoro
+      const currentPending = safeOrders.filter(o => o.status === 'pendente');
+      soundAlert.setPendingCount(currentPending.length);
+      knownPendingIds.current = new Set(currentPending.map(o => o.id));
     } catch (err) {
       console.error("Erro ao atualizar pedidos:", err);
     } finally {
@@ -259,6 +255,12 @@ export default function OrdersPage() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
+      setOrders(prev => {
+        const next = prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
+        const remainingPending = next.filter(o => o.status === 'pendente');
+        soundAlert.setPendingCount(remainingPending.length);
+        return next;
+      });
       await Order.update(orderId, { status: newStatus });
       loadOrdersOnly();
     } catch (err) {

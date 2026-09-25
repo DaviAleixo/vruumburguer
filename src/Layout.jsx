@@ -140,6 +140,9 @@ export default function Layout({ children, currentPageName }) {
         const currentPending = safeOrders.filter(o => o.status === 'pendente');
         const currentPendingIds = currentPending.map(o => o.id);
 
+        // Atualiza o alarme sonoro contínuo (toca sem parar enquanto houver pedidos pendentes)
+        soundAlert.setPendingCount(currentPending.length);
+
         // Se NÃO estiver na página de Pedidos, atualiza a numeração de notificação
         const isCurrentlyOnOrdersPage = currentPageName === "Orders" || window.location.pathname.endsWith("/Orders");
         if (!isCurrentlyOnOrdersPage) {
@@ -161,9 +164,6 @@ export default function Layout({ children, currentPageName }) {
         if (!isFirstLoad.current) {
           const newOrders = currentPending.filter(o => !knownPendingIds.current.has(o.id));
           if (newOrders.length > 0) {
-            // Toca a campainha potente
-            soundAlert.playOrderChime();
-
             // Notificação visual na tela
             const firstNew = newOrders[0];
             const orderNum = String(firstNew.id).slice(-6).toUpperCase();
@@ -172,16 +172,20 @@ export default function Layout({ children, currentPageName }) {
             toast({
               title: "🔔 Novo Pedido Recebido!",
               description: `Pedido #${orderNum} de ${clientName} (${firstNew.order_type === 'delivery' ? 'Delivery 🛵' : firstNew.order_type === 'dine_in' ? 'Mesa 🍽️' : 'Retirada 🥡'})`,
+              duration: 10000,
             });
 
-            // Notificação do Navegador (aparece mesmo se a aba estiver em segundo plano)
+            // Notificação do Navegador (fecha automaticamente em 10 segundos)
             if ("Notification" in window && Notification.permission === "granted") {
               try {
-                new Notification(`🔔 Novo Pedido #${orderNum}!`, {
+                const notif = new Notification(`🔔 Novo Pedido #${orderNum}!`, {
                   body: `${clientName} acabou de enviar um pedido. Abra o painel para confirmar!`,
                   icon: "/favicon.ico",
                   tag: `order-${firstNew.id}`
                 });
+                setTimeout(() => {
+                  try { notif.close(); } catch {}
+                }, 10000);
               } catch (_e) {}
             }
           }
@@ -197,7 +201,7 @@ export default function Layout({ children, currentPageName }) {
     };
 
     checkNewOrders();
-    const interval = setInterval(checkNewOrders, 7000);
+    const interval = setInterval(checkNewOrders, 5000);
 
     let unsubscribe;
     try {
@@ -396,16 +400,16 @@ export default function Layout({ children, currentPageName }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-stone-900 text-xs truncate">
-                      {user?.full_name || 'Admin'}
+                      {user?.full_name?.includes("@") ? "Administrador" : (user?.full_name || "Administrador")}
                     </p>
-                    <p className="text-[10px] font-medium text-stone-500 truncate">
-                      {user?.email || 'admin@vrumburguer.com'}
+                    <p className="text-[10px] font-semibold text-emerald-700 truncate">
+                      Painel Administrativo
                     </p>
                   </div>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="p-1.5 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                  className="p-1.5 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1 cursor-pointer"
                   title="Sair do painel admin"
                 >
                   <LogOut className="w-4 h-4" />

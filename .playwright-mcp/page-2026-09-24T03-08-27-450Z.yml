@@ -1,0 +1,215 @@
+- generic:
+  - generic [aria-hidden]:
+    - generic:
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=1]: Vruum Burguer
+                    - generic:
+                      - generic: Fechado
+                      - generic: •
+                      - generic: 18:00 - 23:59
+                - generic:
+                  - generic:
+                    - button:
+                      - generic: "1"
+                  - button [expanded]
+                  - button
+          - generic:
+            - generic:
+              - generic:
+                - paragraph: Restaurante Fechado no Momento
+                - paragraph: "Horário de funcionamento: 18:00 às 23:59. Você pode explorar o cardápio e montar seu pedido à vontade!"
+          - generic:
+            - generic:
+              - generic:
+                - button: Burgers Artesanais
+                - button: Combos Especiais
+                - button: Porções & Acompanhamentos
+                - button: Bebidas
+                - button: Sobremesas
+          - main:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=2]:
+                    - generic: Mais Pedidos
+                    - generic: Top 7
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: "#1"
+                    - generic:
+                      - heading [level=3]: Combo Smash Duplo Família (2 Burgers + 2 Fritas)
+                      - generic: R$ 79,90
+                - generic:
+                  - generic:
+                    - generic: "#2"
+                    - generic:
+                      - heading [level=3]: Combo Vrum Classic + Fritas + Refri
+                      - generic: R$ 48,90
+                - generic:
+                  - generic:
+                    - generic: "#3"
+                    - generic:
+                      - heading [level=3]: Vrum Bacon Monster
+                      - generic: R$ 44,90
+                - generic:
+                  - generic:
+                    - generic: "#4"
+                    - generic:
+                      - heading [level=3]: Vrum Classic Burger
+                      - generic: R$ 34,90
+                - generic:
+                  - generic:
+                    - generic: "#5"
+                    - generic:
+                      - heading [level=3]: Vrum Crispy Chicken
+                      - generic: R$ 32,90
+                - generic:
+                  - generic:
+                    - generic: "#6"
+                    - generic:
+                      - heading [level=3]: Vrum Smash Duplo
+                      - generic: R$ 29,90
+                - generic:
+                  - generic:
+                    - generic: "#7"
+                    - generic:
+                      - heading [level=3]: Onion Rings Empanadas
+                      - generic: R$ 24,90
+            - generic:
+              - generic:
+                - generic: NOSSO CARDÁPIO
+                - heading [level=2]: Burgers Artesanais
+                - paragraph: Feitos artesanalmente com ingredientes nobres e muito sabor.
+              - generic:
+                - textbox:
+                  - /placeholder: Buscar burgers, bebidas, combos...
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Classic Burger
+                        - generic: Top
+                      - paragraph: Pão brioche selado na manteiga, blend artesanal 180g, queijo cheddar derretido, cebola caramelizada e maionese especial da casa.
+                    - generic: R$ 34,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Bacon Monster
+                      - paragraph: Pão brioche, 2x blends artesanais 160g, fatias generosas de bacon crocante, cheddar duplo, picles e molho barbecue rústico.
+                    - generic: R$ 44,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Smash Duplo
+                      - paragraph: Pão de batata macio, 2x ultra smash 90g com crostinha perfeita, queijo prato duplo e molho especial.
+                    - generic: R$ 29,90
+                  - generic:
+                    - button
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - heading [level=3]: Vrum Crispy Chicken
+                      - paragraph: Pão brioche, sobrecoxa empanada crocante temperada com especiarias, alface americana fresca, tomate e maionese de alho confit.
+                    - generic: R$ 32,90
+                  - generic:
+                    - button
+            - generic:
+              - generic:
+                - generic:
+                  - generic: COMBO PROMOCIONAL EXCLUSIVO
+                  - heading [level=3]: Conheça a nossa seleção de Combos Especiais
+                  - paragraph: Burgers artesanais suculentos acompanhados de batata crocante e bebida gelada com o melhor custo-benefício.
+                - generic:
+                  - button:
+                    - generic: Explorar Combos Especiais
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Entrega Rápida
+                  - paragraph: Seu burger quentinho no menor tempo
+              - generic:
+                - generic:
+                  - paragraph: Pagamento Seguro
+                  - paragraph: Pix automático, cartão e dinheiro
+              - generic:
+                - generic:
+                  - paragraph: Qualidade Artesanal
+                  - paragraph: Ingredientes frescos e selecionados
+          - contentinfo:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=4]: Vruum Burguer
+                - paragraph: Burgers artesanais preparados com ingredientes nobres e muito amor por hambúrguer de verdade.
+              - generic:
+                - paragraph: Localização & Contato
+                - generic: Av. Brasil, 1500 - Centro
+                - generic: (11) 99999-9999
+                - link:
+                  - /url: https://wa.me/31982607426
+                  - generic: "31982607426"
+                - link:
+                  - /url: https://instagram.com/vruummburguer
+                  - generic: "@vruummburguer"
+              - generic:
+                - paragraph: Horário de Funcionamento
+                - generic: Fechado
+                - paragraph: 18:00 às 23:59
+            - generic:
+              - paragraph: © 2026 Vruum Burguer. Todos os direitos reservados.
+              - paragraph:
+                - text: Desenvolvido por
+                - link:
+                  - /url: https://instagram.com/davialeixo_nogueira
+                  - text: Davi Aleixo
+                - text: "|"
+                - link:
+                  - /url: https://wa.me/5531982607426
+                  - text: "31982607426"
+          - button [ref=f1e500] [cursor=pointer]:
+            - generic [ref=f1e502]:
+              - generic [ref=f1e503]: "1"
+              - generic [ref=f1e508]:
+                - generic [ref=f1e509]: Ver Carrinho
+                - generic [ref=f1e510]: 1 item adicionado
+            - generic [ref=f1e511]: R$ 79,90
+  - dialog [ref=f1e547]:
+    - button "Close" [active] [ref=f1e548] [cursor=pointer]
+    - generic [ref=f1e561]:
+      - heading "Vruum Burguer" [level=2] [ref=f1e562]
+      - paragraph [ref=f1e563]: Informações & Atendimento
+    - generic [ref=f1e564]:
+      - generic [ref=f1e565]:
+        - generic [ref=f1e571]:
+          - paragraph [ref=f1e572]: Funcionamento
+          - paragraph [ref=f1e573]: Das 18:00 às 23:59
+        - generic [ref=f1e579]:
+          - paragraph [ref=f1e580]: Endereço
+          - paragraph [ref=f1e581]: Av. Brasil, 1500 - Centro
+        - generic [ref=f1e586]:
+          - paragraph [ref=f1e587]: WhatsApp Oficial
+          - link "31982607426" [ref=f1e588] [cursor=pointer]:
+            - /url: https://wa.me/5531982607426
+      - generic [ref=f1e589]:
+        - heading "Redes Sociais" [level=4] [ref=f1e590]
+        - link "@vruummburguer" [ref=f1e592] [cursor=pointer]:
+          - /url: https://instagram.com/vruummburguer

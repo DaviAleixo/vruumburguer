@@ -1,8 +1,9 @@
 // Inspired by react-hot-toast library
 import { useState, useEffect } from "react";
 
-const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_LIMIT = 5;
+const TOAST_REMOVE_DELAY = 1000;
+const DEFAULT_TOAST_DURATION = 10000; // 10 segundos
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -63,8 +64,6 @@ export const reducer = (state, action) => {
     case actionTypes.DISMISS_TOAST: {
       const { toastId } = action;
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId);
       } else {
@@ -110,7 +109,7 @@ function dispatch(action) {
   });
 }
 
-function toast({ ...props }) {
+function toast({ duration = DEFAULT_TOAST_DURATION, ...props }) {
   const id = genId();
 
   const update = (props) =>
@@ -133,6 +132,12 @@ function toast({ ...props }) {
       },
     },
   });
+
+  if (duration !== Infinity && duration > 0) {
+    setTimeout(() => {
+      dismiss();
+    }, duration);
+  }
 
   return {
     id,
