@@ -15,6 +15,7 @@ import { base44 } from "@/api/base44Client";
 import { AnimatePresence, motion } from "framer-motion";
 import ProductCard from "../components/menu/ProductCard";
 import PopularProductsRow from "../components/menu/PopularProductsRow";
+import RecentOrdersRow from "../components/menu/RecentOrdersRow";
 import Cart from "../components/menu/Cart";
 import OrderModal from "../components/menu/OrderModal";
 import BannerCarousel from "../components/menu/BannerCarousel";
@@ -59,6 +60,7 @@ export default function MenuPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [storeIsOpen, setStoreIsOpen] = useState(true);
   const [activeGuestOrder, setActiveGuestOrder] = useState(null);
+  const [recentOrders, setRecentOrders] = useState([]);
   const [complementGroups, setComplementGroups] = useState([]);
   const [complementItems, setComplementItems] = useState([]);
   const [productComplementGroups, setProductComplementGroups] = useState([]);
@@ -74,24 +76,86 @@ export default function MenuPage() {
   useEffect(() => {
     loadData();
     checkActiveOrders();
+    loadRecentOrders();
     requestNotificationPermission();
 
     const unsubSettings = Settings.subscribe(() => loadData());
     const unsubBanners = BannerImage.subscribe(() => loadData());
     const unsubProducts = Product.subscribe(() => loadData());
     const unsubCategories = Category.subscribe(() => loadData());
+    const unsubOrders = Order.subscribe(() => {
+      checkActiveOrders();
+      loadRecentOrders();
+    });
 
     return () => {
       if (typeof unsubSettings === "function") unsubSettings();
       if (typeof unsubBanners === "function") unsubBanners();
       if (typeof unsubProducts === "function") unsubProducts();
       if (typeof unsubCategories === "function") unsubCategories();
+      if (typeof unsubOrders === "function") unsubOrders();
     };
   }, []);
 
   const requestNotificationPermission = async () => {
     if ("Notification" in window && Notification.permission === "default") {
       await Notification.requestPermission();
+    }
+  };
+
+  const loadRecentOrders = async () => {
+    try {
+      let loggedUser = null;
+      try {
+        loggedUser = await base44.auth.me();
+      } catch {}
+
+      const allOrders = await Order.list("-created_date", 25);
+      if (!Array.isArray(allOrders) || allOrders.length === 0) {
+        setRecentOrders([]);
+        return;
+      }
+
+      const recentIds = JSON.parse(localStorage.getItem("vrumburguer_recent_orders") || "[]");
+      const savedPhone = (localStorage.getItem("vrumburguer_customer_phone") || "").replace(/\D/g, "");
+
+      let filtered = [];
+
+      if (loggedUser?.email) {
+        filtered = allOrders.filter(o => o.user_email === loggedUser.email);
+      }
+
+      if (recentIds.length > 0) {
+        const localMatched = allOrders.filter(o => recentIds.includes(o.id));
+        filtered = [...filtered, ...localMatched];
+      }
+
+      if (savedPhone && savedPhone.length >= 8) {
+        const phoneOrders = allOrders.filter(o => {
+          const op = (o.customer_phone || "").replace(/\D/g, "");
+          return op === savedPhone || (op.length >= 8 && op.endsWith(savedPhone.slice(-8)));
+        });
+        filtered = [...filtered, ...phoneOrders];
+      }
+
+      // Se não houver pedidos específicos salvos no navegador, utiliza os últimos pedidos da loja (até 10)
+      if (filtered.length === 0) {
+        filtered = allOrders.slice(0, 10);
+      }
+
+      // Deduplica por ID
+      const uniqueOrders = [];
+      const seenIds = new Set();
+      for (const order of filtered) {
+        if (!seenIds.has(order.id)) {
+          seenIds.add(order.id);
+          uniqueOrders.push(order);
+        }
+      }
+
+      setRecentOrders(uniqueOrders.slice(0, 10));
+    } catch (_err) {
+      console.log("Erro ao carregar últimos pedidos:", _err);
     }
   };
 
@@ -500,6 +564,16 @@ export default function MenuPage() {
           <PopularProductsRow
             products={popularRankedProducts}
             onProductClick={handleProductClick}
+            isStoreOpen={storeIsOpen}
+          />
+        )}
+
+        {/* Carrossel dos Últimos Pedidos (com suporte a múltiplos itens e repetição de pedidos) */}
+        {!searchQuery.trim() && recentOrders.length > 0 && (
+          <RecentOrdersRow
+            orders={recentOrders}
+            products={products}
+            onAddToCart={addToCart}
             isStoreOpen={storeIsOpen}
           />
         )}

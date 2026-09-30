@@ -121,6 +121,26 @@ if (typeof window !== "undefined") {
   });
 }
 
+// Garantir que a versão oficial do novo cardápio seja carregada
+const MENU_DATA_VERSION = "vruum_menu_v2026_09_official";
+if (typeof window !== "undefined") {
+  try {
+    const currentVer = localStorage.getItem(`${STORAGE_PREFIX}menu_data_version`);
+    if (currentVer !== MENU_DATA_VERSION) {
+      localStorage.setItem(`${STORAGE_PREFIX}menu_data_version`, MENU_DATA_VERSION);
+      localStorage.removeItem(`${STORAGE_PREFIX}products`);
+      localStorage.removeItem(`${STORAGE_PREFIX}categories`);
+      localStorage.removeItem(`${STORAGE_PREFIX}complement_groups`);
+      localStorage.removeItem(`${STORAGE_PREFIX}complement_items`);
+      localStorage.removeItem(`${STORAGE_PREFIX}product_complement_groups`);
+      localStorage.removeItem(`${STORAGE_PREFIX}product_additionals`);
+      for (const key of ["products", "categories", "complement_groups", "complement_items", "product_complement_groups"]) {
+        localStorage.removeItem(`${STORAGE_PREFIX}cache_ts_${key}`);
+      }
+    }
+  } catch {}
+}
+
 function getStoredLocalCache(collectionKey, ttl) {
   if (typeof window === "undefined" || !PERSISTENT_CACHE_TABLES.has(collectionKey)) return null;
   try {

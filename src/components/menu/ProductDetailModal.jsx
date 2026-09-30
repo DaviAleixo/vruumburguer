@@ -16,12 +16,14 @@ export default function ProductDetailModal({
   const [quantity, setQuantity] = useState(1);
   const [selectedComplements, setSelectedComplements] = useState({});
   const [notes, setNotes] = useState("");
+  const [imageError, setImageError] = useState(false);
 
   // Reset state on open
   useEffect(() => {
     if (isOpen) {
       setQuantity(1);
       setNotes("");
+      setImageError(false);
       const initial = {};
 
       // Auto-select first item for mandatory single-choice groups (ex: Ponto da Carne)
@@ -46,6 +48,8 @@ export default function ProductDetailModal({
   }, [isOpen, product, complementGroups]);
 
   if (!product) return null;
+
+  const hasValidImage = Boolean(product.image_url && !imageError);
 
   // Contagem de seleções por grupo
   const getGroupSelectedCount = (groupId) => {
@@ -176,13 +180,14 @@ export default function ProductDetailModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-0 gap-0 rounded-3xl border border-stone-800 bg-[#14100e] text-stone-100 shadow-2xl scrollbar-hide">
-        {/* Banner do Produto com Imagem */}
-        <div className="relative">
-          {product.image_url ? (
+        {/* Banner do Produto com Imagem (Somente se houver imagem válida) */}
+        {hasValidImage ? (
+          <div className="relative">
             <div className="w-full h-48 sm:h-60 overflow-hidden bg-stone-900 relative">
               <img 
                 src={product.image_url} 
-                alt={product.name} 
+                alt={product.name}
+                onError={() => setImageError(true)}
                 className="w-full h-full object-cover" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#14100e] via-[#14100e]/40 to-transparent" />
@@ -199,20 +204,20 @@ export default function ProductDetailModal({
                 </p>
               </div>
             </div>
-          ) : (
-            <DialogHeader className="p-4 sm:p-6 pb-3 border-b border-stone-800 bg-[#16110f]">
-              <DialogTitle 
-                className="text-xl sm:text-2xl font-black text-white"
-                style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-              >
-                {product.name}
-              </DialogTitle>
-              <p className="text-base sm:text-lg font-black text-red-400 mt-1">
-                R$ {Number(product.price || 0).toFixed(2).replace('.', ',')}
-              </p>
-            </DialogHeader>
-          )}
-        </div>
+          </div>
+        ) : (
+          <DialogHeader className="p-4 sm:p-6 pb-3 border-b border-stone-800 bg-[#16110f]">
+            <DialogTitle 
+              className="text-xl sm:text-2xl font-black text-white"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
+              {product.name}
+            </DialogTitle>
+            <p className="text-base sm:text-lg font-black text-red-400 mt-1">
+              R$ {Number(product.price || 0).toFixed(2).replace('.', ',')}
+            </p>
+          </DialogHeader>
+        )}
 
         <div className="p-4 sm:p-6 space-y-5">
           {product.description && (

@@ -15,10 +15,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Search, Layers, ExternalLink } from "lucide-react";
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Search, 
+  Layers, 
+  ExternalLink, 
+  Eye, 
+  EyeOff, 
+  CheckCircle2, 
+  Package, 
+  Filter 
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // New AdditionalsManager component
 function AdditionalsManager({ productId, initialAdditionals = [] }) {
@@ -109,7 +122,9 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all"); // "all" | "visible" | "hidden"
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingVisibilityId, setUpdatingVisibilityId] = useState(null);
   const [productForm, setProductForm] = useState({
     name: "",
     description: "",
@@ -145,6 +160,33 @@ export default function ProductsPage() {
     }
   };
 
+  const handleToggleVisibility = async (product, e) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    const newStatus = !(product.available !== false);
+    setUpdatingVisibilityId(product.id);
+
+    // Atualização otimista local
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: newStatus } : p));
+
+    try {
+      await Product.update(product.id, { available: newStatus });
+      if (newStatus) {
+        toast.success(`"${product.name}" agora está visível no cardápio!`);
+      } else {
+        toast.info(`"${product.name}" foi ocultado do cardápio.`);
+      }
+    } catch (error) {
+      console.error("Erro ao alterar visibilidade:", error);
+      toast.error("Erro ao atualizar visibilidade do produto");
+      // Reverter em caso de erro
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: !newStatus } : p));
+    } finally {
+      setUpdatingVisibilityId(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -152,14 +194,17 @@ export default function ProductsPage() {
     try {
       const productData = {
         ...productForm,
-        price: parseFloat(productForm.price)
+        price: parseFloat(productForm.price),
+        available: Boolean(productForm.available)
       };
 
       let savedProduct;
       if (editingProduct) {
         savedProduct = await Product.update(editingProduct.id, productData);
+        toast.success("Produto atualizado com sucesso!");
       } else {
         savedProduct = await Product.create(productData);
+        toast.success("Produto cadastrado com sucesso!");
       }
 
       const prodId = savedProduct?.id || editingProduct?.id;
@@ -191,7 +236,7 @@ export default function ProductsPage() {
       resetForm();
       await loadProducts();
     } catch (error) {
-      alert("Erro ao salvar produto");
+      toast.error("Erro ao salvar produto");
       console.error("Error saving product:", error);
     } finally {
       setIsSubmitting(false);
@@ -202,9 +247,10 @@ export default function ProductsPage() {
     if (confirm("Tem certeza que deseja excluir este produto?")) {
       try {
         await Product.delete(productId);
+        toast.success("Produto excluído com sucesso!");
         await loadProducts();
       } catch (error) {
-        alert("Erro ao excluir produto.");
+        toast.error("Erro ao excluir produto.");
         console.error("Error deleting product:", error);
       }
     }
@@ -216,8 +262,9 @@ export default function ProductsPage() {
       try {
         const { file_url } = await UploadFile({ file });
         setProductForm(prev => ({ ...prev, image_url: file_url }));
+        toast.success("Imagem enviada com sucesso!");
       } catch (error) {
-        alert("Erro ao fazer upload da imagem");
+        toast.error("Erro ao fazer upload da imagem");
         console.error("Error uploading image:", error);
       }
     }
@@ -243,7 +290,7 @@ export default function ProductsPage() {
       price: product.price.toString(),
       category: product.category || "",
       image_url: product.image_url || "",
-      available: product.available
+      available: product.available !== false
     });
     const linked = productComplementGroups.filter(pcg => pcg.product_id === product.id).map(pcg => pcg.group_id);
     setSelectedGroupIds(linked);
@@ -251,169 +298,353 @@ export default function ProductsPage() {
     setShowModal(true);
   };
 
+  const visibleCount = products.filter(p => p.available !== false).length;
+  const hiddenCount = products.filter(p => p.available === false).length;
+
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = filterCategory === "all" || product.category === filterCategory;
-    return matchesSearch && matchesCategory;
+    const matchesStatus = 
+      filterStatus === "all" ? true :
+      filterStatus === "visible" ? (product.available !== false) :
+      filterStatus === "hidden" ? (product.available === false) : true;
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
   
   const getCategoryNameById = (categoryId) => {
     return categories.find(c => c.id === categoryId)?.name || 'Sem Categoria';
-  }
+  };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Superior */}
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Produtos</h1>
-            <p className="text-gray-600 mt-2">Gerencie o cardápio do seu restaurante</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+              🍔 Produtos & Cardápio
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Gerencie os itens do cardápio, valores, complementos e oculte produtos indisponíveis
+            </p>
           </div>
           <Button 
             onClick={() => {
-              resetForm(); // Reset form when opening for new product
+              resetForm();
               setShowModal(true);
             }}
-            className="bg-amber-500 hover:bg-amber-600 text-white"
+            className="bg-red-600 hover:bg-red-700 text-white font-bold shadow-md shadow-red-950/10"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-1.5" />
             Novo Produto
           </Button>
         </div>
 
-        <div className="flex gap-4 mb-6">
+        {/* Métricas Rápidas / Atalhos de Filtro de Visibilidade */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <button
+            type="button"
+            onClick={() => setFilterStatus("all")}
+            className={`p-3 sm:p-4 rounded-xl border text-left transition-all ${
+              filterStatus === "all" 
+                ? "bg-white border-red-500 ring-2 ring-red-500/20 shadow-sm" 
+                : "bg-white border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</span>
+              <Package className="w-4 h-4 text-gray-400" />
+            </div>
+            <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">{products.length}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">Todos os itens</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterStatus("visible")}
+            className={`p-3 sm:p-4 rounded-xl border text-left transition-all ${
+              filterStatus === "visible" 
+                ? "bg-emerald-50/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm" 
+                : "bg-white border-gray-200 hover:border-emerald-200"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Visíveis</span>
+              <Eye className="w-4 h-4 text-emerald-600" />
+            </div>
+            <p className="text-xl sm:text-2xl font-black text-emerald-700 mt-1">{visibleCount}</p>
+            <p className="text-[11px] text-emerald-600 mt-0.5">Exibidos no cardápio</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterStatus("hidden")}
+            className={`p-3 sm:p-4 rounded-xl border text-left transition-all ${
+              filterStatus === "hidden" 
+                ? "bg-amber-50/60 border-amber-500 ring-2 ring-amber-500/20 shadow-sm" 
+                : "bg-white border-gray-200 hover:border-amber-200"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Ocultos</span>
+              <EyeOff className="w-4 h-4 text-amber-600" />
+            </div>
+            <p className="text-xl sm:text-2xl font-black text-amber-700 mt-1">{hiddenCount}</p>
+            <p className="text-[11px] text-amber-600 mt-0.5">Invisíveis aos clientes</p>
+          </button>
+        </div>
+
+        {/* Barra de Filtros e Busca */}
+        <div className="flex flex-col md:flex-row gap-3 bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Buscar produtos..."
+              placeholder="Buscar por nome ou ingrediente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-9 bg-gray-50/60 border-gray-200 focus:bg-white"
             />
           </div>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filtrar por categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as categorias</SelectItem>
-              {categories.map(category => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3">
+            {/* Filtro por Categoria */}
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-full sm:w-48 bg-gray-50/60 border-gray-200">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Filtro por Flag de Visibilidade / Ocultos */}
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full sm:w-48 bg-gray-50/60 border-gray-200">
+                <SelectValue placeholder="Visibilidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="visible">👁️ Apenas Visíveis ({visibleCount})</SelectItem>
+                <SelectItem value="hidden">🚫 Apenas Ocultos ({hiddenCount})</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Grid de Cards de Produtos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           <AnimatePresence>
-            {filteredProducts.map((product) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="aspect-square overflow-hidden bg-gray-100">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl bg-gray-200 text-gray-400">
-                        📦
+            {filteredProducts.map((product) => {
+              const isVisible = product.available !== false;
+              const isUpdatingThis = updatingVisibilityId === product.id;
+
+              return (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className={`overflow-hidden transition-all duration-200 flex flex-col justify-between h-full border ${
+                    isVisible 
+                      ? "bg-white border-gray-200 hover:shadow-md hover:border-gray-300" 
+                      : "bg-stone-50/90 border-amber-300/80 shadow-xs"
+                  }`}>
+                    {/* Imagem do Produto com Badge de Visibilidade Flutuante */}
+                    <div className="relative aspect-video sm:aspect-4/3 overflow-hidden bg-gray-100">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className={`w-full h-full object-cover transition-all ${
+                            isVisible ? "" : "grayscale-40 opacity-75"
+                          }`}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl bg-stone-100 text-gray-400">
+                          🍔
+                        </div>
+                      )}
+
+                      {/* Badge de Status / Flag */}
+                      <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+                        <Badge 
+                          variant="outline"
+                          className={`shadow-sm text-xs font-bold px-2.5 py-1 backdrop-blur-md flex items-center gap-1.5 ${
+                            isVisible 
+                              ? "bg-emerald-500/90 text-white border-emerald-400" 
+                              : "bg-amber-500/95 text-white border-amber-400"
+                          }`}
+                        >
+                          {isVisible ? (
+                            <>
+                              <Eye className="w-3.5 h-3.5" />
+                              Visível
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5" />
+                              Oculto
+                            </>
+                          )}
+                        </Badge>
                       </div>
-                    )}
-                  </div>
-                  
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                       <div>
-                        <h3 className="font-semibold text-lg line-clamp-1">{product.name}</h3>
-                        <p className="text-xs text-gray-500">{getCategoryNameById(product.category)}</p>
-                       </div>
-                      <Badge 
-                        variant={product.available ? "default" : "secondary"}
-                        className={product.available ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-red-100 text-red-800 hover:bg-red-100"}
-                      >
-                        {product.available ? "Disponível" : "Indisponível"}
-                      </Badge>
+
+                      {/* Categoria pill */}
+                      <div className="absolute bottom-2 left-2 z-10">
+                        <span className="bg-black/70 backdrop-blur-md text-white text-[11px] font-semibold px-2 py-0.5 rounded-md">
+                          {getCategoryNameById(product.category)}
+                        </span>
+                      </div>
                     </div>
                     
-                    {product.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {product.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="text-xl font-bold text-amber-600">
-                        R$ {product.price.toFixed(2).replace('.', ',')}
+                    {/* Conteúdo do Card */}
+                    <CardContent className="p-4 flex-1 flex flex-col justify-between gap-3">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className={`font-bold text-base line-clamp-1 ${
+                            isVisible ? "text-gray-900" : "text-stone-700"
+                          }`}>
+                            {product.name}
+                          </h3>
+                        </div>
+                        
+                        {product.description ? (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                            {product.description}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 italic mt-1">Sem descrição cadastrada</p>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => openEditModal(product)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50/50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+
+                      <div className="space-y-3 pt-2 border-t border-gray-100">
+                        {/* Preço e Ações Principais */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-extrabold text-red-600">
+                            R$ {Number(product.price || 0).toFixed(2).replace('.', ',')}
+                          </span>
+
+                          <div className="flex gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditModal(product)}
+                              className="h-8 px-2.5 text-xs text-gray-700 hover:bg-gray-100 border-gray-300"
+                              title="Editar produto"
+                            >
+                              <Edit className="w-3.5 h-3.5 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(product.id)}
+                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Excluir produto"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Switch Rápido de Ocultar / Exibir (Flag) */}
+                        <div className={`flex items-center justify-between p-2 rounded-lg border transition-colors ${
+                          isVisible 
+                            ? "bg-emerald-50/50 border-emerald-200/80" 
+                            : "bg-amber-50/70 border-amber-200"
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            {isVisible ? (
+                              <Eye className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <EyeOff className="w-4 h-4 text-amber-600" />
+                            )}
+                            <Label 
+                              htmlFor={`switch-vis-${product.id}`}
+                              className="text-xs font-semibold cursor-pointer select-none"
+                            >
+                              {isVisible ? "Visível no cardápio" : "Oculto no cardápio"}
+                            </Label>
+                          </div>
+
+                          <Switch
+                            id={`switch-vis-${product.id}`}
+                            checked={isVisible}
+                            disabled={isUpdatingThis}
+                            onCheckedChange={() => handleToggleVisibility(product)}
+                            className="data-[state=checked]:bg-emerald-600"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
 
+        {/* Estado Vazio */}
         {filteredProducts.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-4">📦</div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
+            <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center text-3xl mx-auto mb-3">
+              📦
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
               Nenhum produto encontrado
             </h3>
-            <p className="text-gray-600">
-              {searchTerm || filterCategory !== "all" 
-                ? "Tente ajustar os filtros de busca." 
-                : "Adicione seu primeiro produto ao cardápio."}
+            <p className="text-sm text-gray-500 max-w-sm mx-auto mb-4">
+              {searchTerm || filterCategory !== "all" || filterStatus !== "all"
+                ? "Nenhum item corresponde aos filtros selecionados. Tente ajustar a busca ou o status de visibilidade." 
+                : "Seu cardápio ainda não tem nenhum produto cadastrado."}
             </p>
+            {(searchTerm || filterCategory !== "all" || filterStatus !== "all") && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("");
+                  setFilterCategory("all");
+                  setFilterStatus("all");
+                }}
+                className="text-xs"
+              >
+                Limpar Filtros
+              </Button>
+            )}
           </div>
         )}
 
+        {/* Modal de Criação / Edição de Produto */}
         <Dialog open={showModal} onOpenChange={(open) => {
-          if (!open) { // If dialog is closing
+          if (!open) {
             resetForm();
           }
           setShowModal(open);
         }}>
-          <DialogContent className="sm:max-w-2xl"> {/* Changed max-w-md to max-w-2xl */}
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-xl font-bold">
                 {editingProduct ? "Editar Produto" : "Novo Produto"}
               </DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
               <div>
                 <Label htmlFor="name">Nome do produto *</Label>
                 <Input
                   id="name"
                   value={productForm.name}
                   onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                  placeholder="Ex: Vrum Bacon Especial"
                   required
                 />
               </div>
@@ -424,18 +655,21 @@ export default function ProductsPage() {
                   id="description"
                   value={productForm.description}
                   onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                  placeholder="Descreva os ingredientes, pão, molho..."
+                  rows={3}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="price">Preço *</Label>
+                  <Label htmlFor="price">Preço (R$) *</Label>
                   <Input
                     id="price"
                     type="number"
                     step="0.01"
                     value={productForm.price}
                     onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    placeholder="32.90"
                     required
                   />
                 </div>
@@ -468,27 +702,53 @@ export default function ProductsPage() {
                   className="cursor-pointer"
                 />
                 {productForm.image_url && (
-                  <div className="mt-2">
+                  <div className="mt-2 flex items-center gap-3">
                     <img
                       src={productForm.image_url}
                       alt="Preview"
-                      className="w-20 h-20 object-cover rounded-lg border"
+                      className="w-16 h-16 object-cover rounded-lg border"
                     />
+                    <span className="text-xs text-emerald-600 font-medium">✓ Imagem carregada</span>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="available"
-                  checked={productForm.available}
-                  onCheckedChange={(checked) => setProductForm({...productForm, available: checked})}
-                />
-                <Label htmlFor="available">Produto disponível</Label>
+              {/* Seção Destacada de Flag de Visibilidade / Ocultar Produto */}
+              <div className={`p-4 rounded-xl border transition-all ${
+                productForm.available 
+                  ? "bg-emerald-50/60 border-emerald-200" 
+                  : "bg-amber-50/80 border-amber-200"
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      {productForm.available ? (
+                        <Eye className="w-4 h-4 text-emerald-700" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-amber-700" />
+                      )}
+                      <Label htmlFor="form-available" className="font-bold text-sm text-gray-900 cursor-pointer">
+                        {productForm.available ? "Produto Visível no Cardápio" : "Produto Oculto (Indisponível)"}
+                      </Label>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      {productForm.available 
+                        ? "O produto aparecerá normalmente no cardápio online para todos os clientes comprarem."
+                        : "O produto ficará oculto no cardápio online dos clientes até que seja reativado."}
+                    </p>
+                  </div>
+
+                  <Switch
+                    id="form-available"
+                    checked={productForm.available}
+                    onCheckedChange={(checked) => setProductForm({...productForm, available: checked})}
+                    className="data-[state=checked]:bg-emerald-600"
+                  />
+                </div>
               </div>
 
-              {/* Grupos de Complementos e Adicionais Globais (Padrão Anota AI) */}
-              <div className="space-y-3 pt-3 border-t">
+              {/* Grupos de Complementos e Adicionais Globais */}
+              <div className="space-y-3 pt-2 border-t">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
@@ -509,13 +769,15 @@ export default function ProductsPage() {
                     Nenhum grupo global cadastrado. <Link to={createPageUrl("Complements")} className="underline font-bold">Criar grupos de complementos</Link>.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-stone-50 rounded-xl border border-stone-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto p-2 bg-stone-50 rounded-xl border border-stone-200">
                     {complementGroups.map(grp => {
                       const isSelected = selectedGroupIds.includes(grp.id);
                       return (
                         <label 
                           key={grp.id} 
-                          className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${isSelected ? 'bg-red-50/70 border-red-300 shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+                          className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${
+                            isSelected ? 'bg-red-50/70 border-red-300 shadow-xs' : 'bg-white border-gray-200 hover:border-gray-300'
+                          }`}
                         >
                           <Checkbox 
                             checked={isSelected}
@@ -548,7 +810,7 @@ export default function ProductsPage() {
                 />
               )}
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -560,9 +822,9 @@ export default function ProductsPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 bg-amber-500 hover:bg-amber-600"
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar"}
+                  {isSubmitting ? "Salvando..." : "Salvar Produto"}
                 </Button>
               </div>
             </form>
