@@ -29,7 +29,6 @@ import {
   ChevronRight, 
   Search, 
   ShieldCheck, 
-  Sparkles, 
   MapPin, 
   Phone, 
   ArrowRight,
@@ -661,7 +660,6 @@ export default function MenuPage() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2.5 text-left flex-1">
                 <div className="inline-flex items-center gap-1.5 text-red-400 text-xs font-black uppercase tracking-widest">
-                  <Sparkles className="w-3.5 h-3.5 text-red-500" />
                   <span>SELEÇÃO ESPECIAL</span>
                 </div>
                 

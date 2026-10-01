@@ -127,7 +127,7 @@ export default function BannersPage() {
                 transition={{ duration: 0.2 }}
               >
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="aspect-video overflow-hidden bg-gray-100 relative">
+                  <div className="aspect-[3/1] overflow-hidden bg-stone-900 relative">
                     {banner.image_url ? (
                       <img
                         src={banner.image_url}
@@ -221,17 +221,34 @@ export default function BannersPage() {
                   required={!editingBanner && !bannerForm.image_url}
                 />
                 {bannerForm.image_url && (
-                  <div className="mt-3">
+                  <div className="mt-3 relative group rounded-xl overflow-hidden border border-stone-200 bg-stone-950 aspect-[3/1] flex items-center justify-center">
                     <img
                       src={bannerForm.image_url}
                       alt="Preview"
-                      className="w-full h-32 object-cover rounded-lg border"
+                      className="w-full h-full object-cover"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setBannerForm(prev => ({ ...prev, image_url: "" }))}
+                      className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow-lg transition-transform hover:scale-110"
+                      title="Remover imagem"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Recomendado: 800x400px ou proporção 2:1
-                </p>
+
+                <div className="mt-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1 text-amber-950">
+                    📐 Tamanho Recomendado para o Banner:
+                  </p>
+                  <p className="font-medium text-amber-900">
+                    • <strong>1200 x 400 px</strong> (Proporção Panorâmica 3:1) ou <strong>1920 x 640 px</strong>.
+                  </p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    💡 <strong>Dica de design:</strong> Mantenha o logo e os textos principais centralizados no meio da imagem (área de segurança), garantindo que nada seja cortado no celular ou no computador.
+                  </p>
+                </div>
               </div>
 
               <div>
