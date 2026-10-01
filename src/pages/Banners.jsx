@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, GripVertical, Image } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Image, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function BannersPage() {
@@ -221,7 +221,7 @@ export default function BannersPage() {
                   required={!editingBanner && !bannerForm.image_url}
                 />
                 {bannerForm.image_url && (
-                  <div className="mt-3 relative group rounded-xl overflow-hidden border border-stone-200 bg-stone-950 aspect-[3/1] flex items-center justify-center">
+                  <div className="mt-3 relative group rounded-xl overflow-hidden border border-stone-200 bg-stone-950 aspect-[3/1] flex items-center justify-center shadow-xs">
                     <img
                       src={bannerForm.image_url}
                       alt="Preview"
@@ -229,12 +229,29 @@ export default function BannersPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => setBannerForm(prev => ({ ...prev, image_url: "" }))}
-                      className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow-lg transition-transform hover:scale-110"
-                      title="Remover imagem"
+                      onClick={() => {
+                        setBannerForm(prev => ({ ...prev, image_url: "" }));
+                        const fileInput = document.getElementById("image");
+                        if (fileInput) fileInput.value = "";
+                      }}
+                      className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-lg transition-transform hover:scale-110 cursor-pointer"
+                      title="Remover foto do banner (X)"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <X className="w-4 h-4 stroke-[2.5]" />
                     </button>
+                    <div className="absolute bottom-2 left-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBannerForm(prev => ({ ...prev, image_url: "" }));
+                          const fileInput = document.getElementById("image");
+                          if (fileInput) fileInput.value = "";
+                        }}
+                        className="text-[11px] font-bold bg-black/75 hover:bg-red-600 text-white px-2.5 py-1 rounded-lg backdrop-blur-md transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" /> Remover foto
+                      </button>
+                    </div>
                   </div>
                 )}
 
