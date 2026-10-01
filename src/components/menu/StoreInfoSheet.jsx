@@ -30,12 +30,12 @@ export default function StoreInfoSheet({ settings }) {
         <SheetHeader className="pb-4 border-b border-stone-800">
           <div className="flex items-center gap-3.5">
             {/* Foto Real da Loja */}
-            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg border border-red-500/40 flex-shrink-0 bg-stone-900 flex items-center justify-center">
+            <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
               {settings?.restaurant_logo ? (
                 <img 
                   src={settings.restaurant_logo} 
                   alt={settings.restaurant_name || "Logo"} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-contain" 
                 />
               ) : (
                 <span className="text-2xl">🍔</span>

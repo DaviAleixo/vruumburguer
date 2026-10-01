@@ -22,56 +22,67 @@ import {
 const navigationItems = [
   {
     title: "Dashboard",
+    pageKey: "Dashboard",
     url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
   },
   {
     title: "Pedidos",
+    pageKey: "Orders",
     url: createPageUrl("Orders"),
     icon: ShoppingBag,
   },
   {
     title: "PDV Balcão",
+    pageKey: "PDV",
     url: createPageUrl("PDV"),
     icon: Monitor,
   },
   {
     title: "Clientes",
+    pageKey: "Clients",
     url: createPageUrl("Clients"),
     icon: Users,
   },
   {
     title: "Produtos",
+    pageKey: "Products",
     url: createPageUrl("Products"),
     icon: Package,
   },
   {
     title: "Categorias",
+    pageKey: "Categories",
     url: createPageUrl("Categories"),
     icon: Folder,
   },
   {
     title: "Complementos",
+    pageKey: "Complements",
     url: createPageUrl("Complements"),
     icon: Layers,
   },
   {
     title: "Cupons",
+    pageKey: "Coupons",
     url: createPageUrl("Coupons"),
     icon: Tag,
   },
   {
     title: "Banners",
+    pageKey: "Banners",
     url: createPageUrl("Banners"),
     icon: ImageIcon,
   },
   {
     title: "Relatórios",
+    pageKey: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart,
   },
   {
     title: "Configurações",
+    pageKey: "Settings",
     url: createPageUrl("Settings"),
     icon: Settings,
   },
@@ -220,16 +231,87 @@ export default function Layout({ children, currentPageName }) {
     try {
       const storedAdmin = localStorage.getItem("admin_user");
       if (storedAdmin) {
-        const parsed = JSON.parse(storedAdmin);
-        setUser({ full_name: parsed.username ? `Admin (${parsed.username})` : "Administrador", email: parsed.username ? `${parsed.username}@vrumburguer.com` : "admin@vrumburguer.com" });
+        let username = "admin";
+        let role = "admin";
+        let permissions = ["*"];
+        let id = null;
+
+        try {
+          const parsed = JSON.parse(storedAdmin);
+          if (typeof parsed === "string") {
+            username = parsed;
+          } else if (typeof parsed === "object" && parsed !== null) {
+            username = parsed.username || parsed.name || parsed.email?.split("@")[0] || "admin";
+            role = parsed.role || "admin";
+            permissions = Array.isArray(parsed.permissions) ? parsed.permissions : ["*"];
+            id = parsed.id || null;
+          }
+        } catch {
+          username = storedAdmin;
+        }
+
+        setUser({
+          id,
+          username,
+          role,
+          permissions,
+        });
         return;
       }
-      const userData = await base44.auth.me();
-      setUser(userData);
+
+      // Se autenticado como admin sem admin_user salvo
+      if (localStorage.getItem("admin_auth") === "authenticated") {
+        setUser({
+          id: null,
+          username: "admin",
+          role: "admin",
+          permissions: ["*"],
+        });
+        return;
+      }
+
+      setUser(null);
     } catch (_error) {
-      console.log("User not authenticated");
+      console.log("User not authenticated", _error);
+      setUser(null);
     }
   };
+
+  const userPermissions = React.useMemo(() => {
+    if (!user) return ["*"];
+    if (user.role === "admin") return ["*"];
+    if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+      return user.permissions;
+    }
+    return ["*"];
+  }, [user]);
+
+  const hasPermission = React.useCallback((pageKey) => {
+    if (!pageKey) return true;
+    if (userPermissions.includes("*")) return true;
+    return userPermissions.includes(pageKey);
+  }, [userPermissions]);
+
+  const allowedNavigationItems = React.useMemo(() => {
+    return navigationItems.filter(item => hasPermission(item.pageKey));
+  }, [hasPermission]);
+
+  // Se o usuário tentar acessar uma tela para a qual não tem permissão, redireciona
+  React.useEffect(() => {
+    if (!isPublicPage && isAdminAuthenticated && user) {
+      if (!hasPermission(currentPageName)) {
+        const firstAllowed = allowedNavigationItems[0];
+        if (firstAllowed) {
+          toast({
+            title: "Acesso Não Permitido",
+            description: `Seu usuário não possui permissão para acessar a tela "${currentPageName}".`,
+            variant: "destructive",
+          });
+          navigate(firstAllowed.url, { replace: true });
+        }
+      }
+    }
+  }, [currentPageName, user, isPublicPage, isAdminAuthenticated, allowedNavigationItems, hasPermission, navigate, toast]);
 
   const loadSettings = async () => {
     try {
@@ -309,7 +391,7 @@ export default function Layout({ children, currentPageName }) {
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu className="space-y-1">
-                    {navigationItems.map((item) => {
+                    {allowedNavigationItems.map((item) => {
                       const isActive = location.pathname === item.url;
                       const isOrdersItem = item.title === "Pedidos";
                       const showBadge = isOrdersItem && pendingOrdersCount > 0 && !isActive;
@@ -395,22 +477,19 @@ export default function Layout({ children, currentPageName }) {
 
               <div className="flex items-center justify-between pt-1">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-black text-xs shadow-sm">
-                    {user?.full_name?.charAt(0) || 'A'}
+                  <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-black text-xs shadow-sm uppercase">
+                    {(user?.username || 'a').charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-stone-900 text-xs truncate">
-                      {user?.full_name?.includes("@") ? "Administrador" : (user?.full_name || "Administrador")}
-                    </p>
-                    <p className="text-[10px] font-semibold text-emerald-700 truncate">
-                      Painel Administrativo
+                      {user?.username || "admin"}
                     </p>
                   </div>
                 </div>
                 <button 
                   onClick={handleLogout}
                   className="p-1.5 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1 cursor-pointer"
-                  title="Sair do painel admin"
+                  title="Sair do painel"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>

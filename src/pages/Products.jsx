@@ -26,7 +26,8 @@ import {
   EyeOff, 
   CheckCircle2, 
   Package, 
-  Filter 
+  Filter,
+  X
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -702,13 +703,48 @@ export default function ProductsPage() {
                   className="cursor-pointer"
                 />
                 {productForm.image_url && (
-                  <div className="mt-2 flex items-center gap-3">
-                    <img
-                      src={productForm.image_url}
-                      alt="Preview"
-                      className="w-16 h-16 object-cover rounded-lg border"
-                    />
-                    <span className="text-xs text-emerald-600 font-medium">✓ Imagem carregada</span>
+                  <div className="mt-2.5 flex items-center justify-between p-2.5 bg-stone-50 rounded-xl border border-stone-200">
+                    <div className="flex items-center gap-3">
+                      <div className="relative group w-16 h-16 rounded-lg overflow-hidden border border-stone-200 bg-white flex-shrink-0 shadow-xs">
+                        <img
+                          src={productForm.image_url}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProductForm(prev => ({ ...prev, image_url: "" }));
+                            const fileInput = document.getElementById("image");
+                            if (fileInput) fileInput.value = "";
+                            toast.info("Foto removida.");
+                          }}
+                          className="absolute top-1 right-1 w-5 h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110"
+                          title="Remover foto (X)"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div>
+                        <span className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Imagem carregada
+                        </span>
+                        <p className="text-[11px] text-stone-500 mt-0.5">Clique no X para excluir a foto</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProductForm(prev => ({ ...prev, image_url: "" }));
+                        const fileInput = document.getElementById("image");
+                        if (fileInput) fileInput.value = "";
+                        toast.info("Foto removida.");
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 transition-colors flex items-center gap-1"
+                    >
+                      <X className="w-3.5 h-3.5" /> Remover
+                    </button>
                   </div>
                 )}
               </div>

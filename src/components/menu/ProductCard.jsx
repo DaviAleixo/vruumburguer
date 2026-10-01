@@ -1,6 +1,6 @@
 import React, { forwardRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Flame } from "lucide-react";
+import { Plus } from "lucide-react";
 
 const ProductCard = forwardRef(function ProductCard(
   { product, onProductClick, _isStoreOpen = true, isPopular = false },
@@ -38,12 +38,6 @@ const ProductCard = forwardRef(function ProductCard(
               >
                 {product.name}
               </h3>
-              {(isPopular || product.popular) && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-red-950/80 text-red-400 border border-red-500/40 px-2 py-0.5 rounded-md shadow-xs">
-                  <Flame className="w-2.5 h-2.5 fill-red-400 text-red-400" />
-                  Top
-                </span>
-              )}
             </div>
 
             {product.description && (

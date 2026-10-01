@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lock, User } from "lucide-react";
+import { Lock, User, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -14,6 +14,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 export default function AdminLoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export default function AdminLoginPage() {
       // 2. Fallback de desenvolvimento local
       if (username === "admin" && (password === "123" || password === "admin")) {
         localStorage.setItem("admin_auth", "authenticated");
+        localStorage.setItem("admin_user", JSON.stringify({ username: "admin", role: "admin" }));
         navigate(createPageUrl("Dashboard"), { replace: true });
         return;
       }
@@ -65,6 +67,7 @@ export default function AdminLoginPage() {
       
       if (matched) {
         localStorage.setItem("admin_auth", "authenticated");
+        localStorage.setItem("admin_user", JSON.stringify({ id: matched.id, username: matched.username, role: matched.role || "admin" }));
         navigate(createPageUrl("Dashboard"), { replace: true });
       } else {
         setError("Usuário ou senha incorretos");
@@ -121,13 +124,21 @@ export default function AdminLoginPage() {
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Digite sua senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
             

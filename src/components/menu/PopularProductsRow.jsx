@@ -138,9 +138,6 @@ export default function PopularProductsRow({ products = [], onProductClick, _isS
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-red-950/80 border border-red-500/30 flex items-center justify-center text-red-400">
-            <Flame className="w-4 h-4 fill-red-400" />
-          </div>
           <h2
             className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2"
             style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}

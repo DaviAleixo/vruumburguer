@@ -377,10 +377,10 @@ export default function MenuPage() {
             <div className="flex items-center gap-3">
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden shadow-lg border border-red-500/30 flex-shrink-0 bg-gradient-to-br from-red-600 via-red-700 to-amber-700 flex items-center justify-center"
+                className="w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0 flex items-center justify-center"
               >
                 {settings?.restaurant_logo ? (
-                  <img src={settings.restaurant_logo} alt="Logo" className="w-full h-full object-cover" />
+                  <img src={settings.restaurant_logo} alt="Logo" className="w-full h-full object-contain" />
                 ) : (
                   <span className="text-xl">🍔</span>
                 )}
@@ -582,7 +582,6 @@ export default function MenuPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3 border-b border-stone-800/80 pt-1">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-black tracking-widest text-red-500 uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
               <span>{isSearching ? "BUSCA NO CARDÁPIO" : "NOSSO CARDÁPIO"}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
@@ -698,38 +697,6 @@ export default function MenuPage() {
           </motion.div>
         )}
 
-        {/* 3 Cards de Diferenciais / Trust - Clean Minimalista */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
-          <div className="bg-[#14100e] border border-stone-800/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center flex-shrink-0 text-stone-300">
-              <Bike className="w-5 h-5 text-red-500" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-white">Entrega Rápida</p>
-              <p className="text-xs text-stone-400 mt-0.5">Seu burger quentinho no menor tempo</p>
-            </div>
-          </div>
-
-          <div className="bg-[#14100e] border border-stone-800/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center flex-shrink-0 text-stone-300">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-white">Pagamento Seguro</p>
-              <p className="text-xs text-stone-400 mt-0.5">Pix automático, cartão e dinheiro</p>
-            </div>
-          </div>
-
-          <div className="bg-[#14100e] border border-stone-800/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center flex-shrink-0 text-stone-300">
-              <Star className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-white">Qualidade Artesanal</p>
-              <p className="text-xs text-stone-400 mt-0.5">Ingredientes frescos e selecionados</p>
-            </div>
-          </div>
-        </div>
       </main>
 
       {/* Rodapé Institucional Dark */}
@@ -737,9 +704,9 @@ export default function MenuPage() {
         <div className="container mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           <div className="md:col-span-4 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg border border-red-500/30 flex-shrink-0 bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center">
+              <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
                 {settings?.restaurant_logo ? (
-                  <img src={settings.restaurant_logo} alt="Logo" className="w-full h-full object-cover" />
+                  <img src={settings.restaurant_logo} alt="Logo" className="w-full h-full object-contain" />
                 ) : (
                   <span className="text-xl">🍔</span>
                 )}

@@ -224,24 +224,44 @@ export default function ReportsPage() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 mb-8">
-            <Card className="border-red-200">
-                <CardHeader><CardTitle className="text-red-800">Vendas por Categoria</CardTitle></CardHeader>
-                <CardContent>
+            <Card className="border-0 shadow-md">
+                <CardHeader className="border-b border-stone-100 pb-3">
+                  <CardTitle className="text-base font-bold text-gray-900">Vendas por Categoria</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {categoryMetrics.length === 0 ? (
+                    <div className="h-[300px] flex flex-col items-center justify-center text-stone-400 gap-2">
+                      <Package className="w-10 h-10 stroke-1 text-stone-300" />
+                      <p className="text-sm font-medium">Nenhuma venda por categoria no período selecionado</p>
+                    </div>
+                  ) : (
                     <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={categoryMetrics}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip formatter={(value) => `R$ ${value.toFixed(2).replace('.', ',')}`} />
-                            <Legend />
-                            <Bar dataKey="revenue" fill="#dc2626" name="Receita" />
+                        <BarChart data={categoryMetrics} margin={{ top: 10, right: 10, left: 0, bottom: 25 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} interval={0} angle={-15} textAnchor="end" />
+                            <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `R$${val}`} />
+                            <Tooltip 
+                              formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Receita']}
+                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+                            />
+                            <Bar dataKey="revenue" fill="#dc2626" radius={[6, 6, 0, 0]} name="Receita" />
                         </BarChart>
                     </ResponsiveContainer>
+                  )}
                 </CardContent>
             </Card>
-            <Card className="border-red-200">
-                <CardHeader><CardTitle className="text-red-800">Distribuição de Receita</CardTitle></CardHeader>
-                <CardContent>
+
+            <Card className="border-0 shadow-md">
+                <CardHeader className="border-b border-stone-100 pb-3">
+                  <CardTitle className="text-base font-bold text-gray-900">Distribuição de Receita</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {categoryMetrics.length === 0 ? (
+                    <div className="h-[300px] flex flex-col items-center justify-center text-stone-400 gap-2">
+                      <TrendingUp className="w-10 h-10 stroke-1 text-stone-300" />
+                      <p className="text-sm font-medium">Sem dados de distribuição para este período</p>
+                    </div>
+                  ) : (
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie
@@ -250,20 +270,62 @@ export default function ReportsPage() {
                                 cy="50%"
                                 labelLine={false}
                                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                outerRadius={100}
-                                fill="#8884d8"
+                                outerRadius={105}
+                                innerRadius={45}
+                                paddingAngle={3}
                                 dataKey="revenue"
                             >
                                 {categoryMetrics.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
-                            <Tooltip formatter={(value) => `R$ ${value.toFixed(2).replace('.', ',')}`} />
+                            <Tooltip 
+                              formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Receita']}
+                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+                            />
                         </PieChart>
                     </ResponsiveContainer>
+                  )}
                 </CardContent>
             </Card>
         </div>
+
+        {/* Tabela detalhada de categorias */}
+        {categoryMetrics.length > 0 && (
+          <Card className="border-0 shadow-md overflow-hidden mb-8">
+            <CardHeader className="bg-stone-50 border-b border-stone-100 pb-3">
+              <CardTitle className="text-sm font-bold text-stone-900">Detalhamento por Categoria</CardTitle>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-stone-100/70 text-stone-600 uppercase text-[11px] font-bold border-b border-stone-200">
+                  <tr>
+                    <th className="py-3 px-4">Categoria</th>
+                    <th className="py-3 px-4 text-center">Itens Vendidos</th>
+                    <th className="py-3 px-4 text-right">Faturamento Total</th>
+                    <th className="py-3 px-4 text-right">% do Faturamento</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 bg-white font-medium">
+                  {categoryMetrics.map((cat, idx) => {
+                    const pct = totalRevenue > 0 ? ((cat.revenue / totalRevenue) * 100).toFixed(1) : "0.0";
+                    return (
+                      <tr key={idx} className="hover:bg-stone-50 transition-colors">
+                        <td className="py-3 px-4 flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                          <span className="font-bold text-stone-900">{cat.name}</span>
+                        </td>
+                        <td className="py-3 px-4 text-center font-semibold text-stone-700">{cat.items} un.</td>
+                        <td className="py-3 px-4 text-right font-bold text-stone-900">R$ {Number(cat.revenue).toFixed(2).replace('.', ',')}</td>
+                        <td className="py-3 px-4 text-right font-bold text-red-600">{pct}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
 
       </div>
     </div>

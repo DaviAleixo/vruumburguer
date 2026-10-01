@@ -24,6 +24,7 @@ const TABLE_COLUMNS = {
   orders: "id,order_number,customer_name,customer_phone,customer_email,customer_address,delivery_address,total_amount,total,subtotal,delivery_fee,status,payment_method,order_type,table_number,notes,coupon_code,discount_amount,discount,user_email,items,sent_at,created_date",
   users: "id,full_name,email,phone,role,created_date",
   user_addresses: "id,user_email,user_phone,name,cep,zip_code,street,number,complement,neighborhood,city,state,reference,is_default",
+  admin_users: "id,username,role,active,permissions,created_date,updated_date",
 };
 
 // Tabelas estáticas elegíveis para cache persistido em LocalStorage
@@ -59,6 +60,7 @@ const CACHE_TTL_MAP = {
   orders: 3 * 1000,                      // 3 segundos
   users: 30 * 1000,                      // 30 segundos
   user_addresses: 30 * 1000,             // 30 segundos
+  admin_users: 5 * 1000,                 // 5 segundos
 };
 
 function getCacheKey(collectionKey, method, query, sort, limit) {
