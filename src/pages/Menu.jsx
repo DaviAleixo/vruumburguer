@@ -467,9 +467,11 @@ export default function MenuPage() {
                     <p className="text-[11px] font-extrabold uppercase tracking-wider text-red-200">Pedido em Andamento</p>
                     <p className="text-sm font-bold">
                       #{activeGuestOrder.id.slice(-6).toUpperCase()} • {
-                        activeGuestOrder.status === 'preparando' 
+                        activeGuestOrder.status === 'preparando' || activeGuestOrder.status === 'confirmado'
                           ? 'CONFIRMADO' 
-                          : (activeGuestOrder.status === 'enviado' ? 'A CAMINHO / PRONTO' : activeGuestOrder.status.toUpperCase())
+                          : (activeGuestOrder.status === 'enviado' 
+                              ? (activeGuestOrder.order_type === 'delivery' ? 'A CAMINHO' : (activeGuestOrder.order_type === 'dine_in' || activeGuestOrder.table_number ? 'SENDO SERVIDO' : 'PRONTO P/ RETIRADA')) 
+                              : activeGuestOrder.status.toUpperCase())
                       }
                     </p>
                   </div>

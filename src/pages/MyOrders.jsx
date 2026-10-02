@@ -212,7 +212,7 @@ export default function MyOrdersPage() {
       return "Confirmado";
     }
     if (status === "enviado") {
-      if (order?.order_type === "delivery") return "Saiu para Entrega";
+      if (order?.order_type === "delivery") return "A Caminho";
       if (order?.order_type === "dine_in" || order?.table_number?.toLowerCase().includes("mesa")) return "Sendo Servido";
       return "Pronto p/ Retirada";
     }
