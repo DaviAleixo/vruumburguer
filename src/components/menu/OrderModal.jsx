@@ -1202,21 +1202,24 @@ export default function OrderModal({
                 <button
                   type="button"
                   onClick={() => handleInputChange('payment_method', 'pix')}
-                  className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                  className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-center gap-1.5 min-h-[76px] transition-all cursor-pointer ${
                     customerData.payment_method === 'pix'
                       ? 'border-emerald-600 bg-emerald-50/90 ring-2 ring-emerald-500/30 text-emerald-950 font-black shadow-sm'
                       : 'border-stone-200 bg-white hover:border-stone-400 text-stone-700 font-bold'
                   }`}
                 >
                   <QrCode className={`w-5 h-5 ${customerData.payment_method === 'pix' ? 'text-emerald-600' : 'text-stone-600'}`} />
-                  <span className="text-xs sm:text-sm tracking-tight">PIX</span>
+                  <div className="flex flex-col items-center leading-none">
+                    <span className="text-xs sm:text-sm tracking-tight font-bold">PIX</span>
+                    <span className="text-[10px] font-medium opacity-75 mt-0.5">Na entrega</span>
+                  </div>
                 </button>
 
                 {/* Opção Cartão */}
                 <button
                   type="button"
                   onClick={() => handleInputChange('payment_method', 'cartao')}
-                  className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                  className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-center gap-1.5 min-h-[76px] transition-all cursor-pointer ${
                     customerData.payment_method === 'cartao'
                       ? 'border-red-600 bg-red-50/90 ring-2 ring-red-500/30 text-red-950 font-black shadow-sm'
                       : 'border-stone-200 bg-white hover:border-stone-400 text-stone-700 font-bold'
@@ -1230,7 +1233,7 @@ export default function OrderModal({
                 <button
                   type="button"
                   onClick={() => handleInputChange('payment_method', 'dinheiro')}
-                  className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                  className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-center gap-1.5 min-h-[76px] transition-all cursor-pointer ${
                     customerData.payment_method === 'dinheiro'
                       ? 'border-amber-600 bg-amber-50/90 ring-2 ring-amber-500/30 text-amber-950 font-black shadow-sm'
                       : 'border-stone-200 bg-white hover:border-stone-400 text-stone-700 font-bold'
@@ -1241,9 +1244,17 @@ export default function OrderModal({
                 </button>
               </div>
 
+              {/* Informação quando seleciona PIX */}
+              {customerData.payment_method === 'pix' && (
+                <div className="mt-2.5 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-xs text-emerald-950 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <QrCode className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>O pagamento via <strong>PIX será realizado na entrega</strong> (chave / QR Code com o entregador ou no balcão).</span>
+                </div>
+              )}
+
               {/* Campo de troco quando seleciona Dinheiro */}
               {customerData.payment_method === 'dinheiro' && (
-                <div className="mt-2.5 p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1.5">
+                <div className="mt-2.5 p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
                   <Label htmlFor="change-for" className="text-xs font-semibold text-amber-950">
                     Precisa de troco? Para quanto? (Opcional)
                   </Label>
