@@ -137,9 +137,9 @@ export default function PDVPage() {
   }
 
   return (
-    <div className="relative flex flex-col lg:flex-row h-full min-h-0 bg-gray-100 overflow-hidden" style={{ height: "calc(100vh - 65px)" }}>
+    <div className="relative flex flex-col lg:flex-row h-full min-h-0 min-w-0 bg-gray-100 overflow-hidden w-full">
       {/* Grade de Produtos */}
-      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0 min-w-0">
         <PDVProductGrid
           products={products}
           categories={categories}

@@ -78,7 +78,7 @@ export default function PDVCart({
   };
 
   return (
-    <div className="w-full lg:w-80 xl:w-96 shrink-0 bg-white border-l border-gray-200 flex flex-col shadow-xl h-full min-h-0">
+    <div className="w-full lg:w-72 xl:w-80 shrink-0 bg-white border-l border-gray-200 flex flex-col shadow-xl h-full min-h-0 min-w-0 overflow-hidden">
       {/* Header */}
       <div className="bg-gray-900 text-white px-3.5 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">

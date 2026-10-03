@@ -497,15 +497,15 @@ export default function Layout({ children, currentPageName }) {
             </SidebarFooter>
           </Sidebar>
 
-          <main className="flex-1 flex flex-col">
-            <header className="bg-white border-b border-gray-200 px-6 py-4 md:hidden">
+          <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+            <header className="bg-white border-b border-gray-200 px-6 py-4 md:hidden shrink-0">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />
                 <h1 className="text-xl font-semibold text-gray-900">{settings?.restaurant_name || 'Admin Panel'}</h1>
               </div>
             </header>
 
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto min-w-0 h-full">
               {children}
             </div>
           </main>
