@@ -5,6 +5,8 @@ import { Order } from "@/entities/Order";
 import PDVProductGrid from "../components/pdv/PDVProductGrid";
 import PDVCart from "../components/pdv/PDVCart";
 import PDVPaymentModal from "../components/pdv/PDVPaymentModal";
+import { ShoppingCart, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Som ao adicionar item
 const playBeep = () => {
@@ -32,6 +34,7 @@ export default function PDVPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -78,7 +81,7 @@ export default function PDVPage() {
           item.id === productId ? { ...item, qty: item.qty + delta } : item
         )
         .filter((item) => item.qty > 0)
-      );
+    );
   };
 
   const removeItem = (productId) => {
@@ -92,7 +95,8 @@ export default function PDVPage() {
     setCustomerEmail("");
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const total = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * item.qty, 0);
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
   const handleFinalize = async (paymentMethod) => {
     const orderData = {
@@ -107,9 +111,9 @@ export default function PDVPage() {
       items: cart.map((item) => ({
         product_id: item.id,
         product_name: item.name,
-        product_price: item.price,
+        product_price: Number(item.price) || 0,
         quantity: item.qty,
-        subtotal: item.price * item.qty,
+        subtotal: (Number(item.price) || 0) * item.qty,
         additionals: [],
       })),
     };
@@ -118,6 +122,7 @@ export default function PDVPage() {
     setLastOrder(created);
     clearCart();
     setShowPayment(false);
+    setIsMobileCartOpen(false);
   };
 
   if (isLoading) {
@@ -125,40 +130,99 @@ export default function PDVPage() {
       <div className="flex h-screen items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando PDV...</p>
+          <p className="text-gray-600 font-medium">Carregando PDV...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="relative flex flex-col lg:flex-row h-full min-h-0 bg-gray-100 overflow-hidden" style={{ height: "calc(100vh - 65px)" }}>
       {/* Grade de Produtos */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         <PDVProductGrid
           products={products}
           categories={categories}
           onAddToCart={addToCart}
+          cartCount={totalItemsCount}
+          onOpenMobileCart={() => setIsMobileCartOpen(true)}
         />
       </div>
 
-      {/* Carrinho Lateral */}
-      <PDVCart
-        cart={cart}
-        customerName={customerName}
-        onCustomerNameChange={setCustomerName}
-        customerPhone={customerPhone}
-        onCustomerPhoneChange={setCustomerPhone}
-        customerEmail={customerEmail}
-        onCustomerEmailChange={setCustomerEmail}
-        onUpdateQty={updateQty}
-        onRemoveItem={removeItem}
-        onClearCart={clearCart}
-        onFinalize={() => setShowPayment(true)}
-        total={total}
-        lastOrder={lastOrder}
-        onDismissSuccess={() => setLastOrder(null)}
-      />
+      {/* Barra Flutuante de Resumo em Telas Pequenas */}
+      {cart.length > 0 && !isMobileCartOpen && (
+        <div className="lg:hidden absolute bottom-3 left-3 right-3 z-20 bg-gray-900 text-white rounded-2xl p-3 shadow-2xl flex items-center justify-between border border-gray-800 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center font-black text-sm text-white">
+              {totalItemsCount}
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Total do Pedido</p>
+              <p className="text-lg font-black text-white leading-tight">
+                R$ {total.toFixed(2).replace(".", ",")}
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setIsMobileCartOpen(true)}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold h-10 px-4 rounded-xl gap-1.5 shadow-md cursor-pointer"
+          >
+            <span>Ver Carrinho</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Drawer / Overlay para Telas Pequenas */}
+      {isMobileCartOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs flex justify-end"
+          onClick={() => setIsMobileCartOpen(false)}
+        >
+          <div 
+            className="w-full max-w-md h-full bg-white shadow-2xl animate-in slide-in-from-right duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PDVCart
+              cart={cart}
+              customerName={customerName}
+              onCustomerNameChange={setCustomerName}
+              customerPhone={customerPhone}
+              onCustomerPhoneChange={setCustomerPhone}
+              customerEmail={customerEmail}
+              onCustomerEmailChange={setCustomerEmail}
+              onUpdateQty={updateQty}
+              onRemoveItem={removeItem}
+              onClearCart={clearCart}
+              onFinalize={() => setShowPayment(true)}
+              total={total}
+              lastOrder={lastOrder}
+              onDismissSuccess={() => setLastOrder(null)}
+              onCloseMobile={() => setIsMobileCartOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Carrinho Lateral Fixo para Desktop (lg+) */}
+      <div className="hidden lg:flex shrink-0 h-full min-h-0">
+        <PDVCart
+          cart={cart}
+          customerName={customerName}
+          onCustomerNameChange={setCustomerName}
+          customerPhone={customerPhone}
+          onCustomerPhoneChange={setCustomerPhone}
+          customerEmail={customerEmail}
+          onCustomerEmailChange={setCustomerEmail}
+          onUpdateQty={updateQty}
+          onRemoveItem={removeItem}
+          onClearCart={clearCart}
+          onFinalize={() => setShowPayment(true)}
+          total={total}
+          lastOrder={lastOrder}
+          onDismissSuccess={() => setLastOrder(null)}
+        />
+      </div>
 
       {/* Modal de Pagamento */}
       {showPayment && (
